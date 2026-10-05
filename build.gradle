@@ -1,2 +1,37 @@
 // The root configures portable code only. Every Minecraft target is a build island.
 plugins { id 'base' }
+
+def targets = ['1.6.4', '1.7.10', '1.8.9', '1.12.2', '1.16.5', '1.18.2', '1.20.1', '1.21.11']
+def windows = System.getProperty('os.name').toLowerCase(Locale.ROOT).contains('windows')
+def python = providers.environmentVariable('PYTHON').orElse(windows ? 'python' : 'python3')
+def coordinator = file('scripts/build.py')
+
+def launcher = { String name, String description, List<String> arguments ->
+    tasks.register(name, Exec) {
+        group = 'multiversion'
+        it.description = description
+        workingDir rootDir
+        commandLine([python.get(), coordinator.absolutePath] + arguments)
+    }
+}
+
+targets.each { target ->
+    def suffix = target.replace('.', '_')
+    launcher("build${suffix}", "Build ExampleMod for Minecraft ${target}", ['build', target])
+    ['Client': 'client', 'Server': 'server'].each { side, action ->
+        launcher("run${side}${suffix}", "Run the Minecraft ${target} development ${action}", [action, target]).configure {
+            doFirst {
+                // Native task-graph inspection without starting Minecraft or allocating a version.
+                if (providers.gradleProperty('targetDryRun').orElse('false').get().toBoolean()) {
+                    args '--dry-run'
+                }
+            }
+        }
+    }
+}
+
+launcher('buildAll', 'Build all supported ExampleMod targets using one production build number',
+        ['all', '--skip-common-tests']).configure { dependsOn ':common:test' }
+launcher('testAll', 'Run common tests and the shared tests against every supported target',
+        ['test', '--skip-common-tests']).configure { dependsOn ':common:test' }
+// The parent runs common tests first, avoiding a recursive root Gradle invocation and cache locks.

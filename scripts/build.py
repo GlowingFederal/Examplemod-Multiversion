@@ -109,12 +109,26 @@ def verify(mc, full_version, directory=None):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("action", choices=("build", "all", "test", "plan", "verify", "persist"))
+    parser.add_argument("action", choices=("build", "all", "test", "client", "server", "plan", "verify", "persist"))
     parser.add_argument("target", nargs="?", choices=VERSIONS)
     parser.add_argument("--full-version")
     parser.add_argument("--artifacts", type=Path)
     parser.add_argument("--number", type=int)
+    parser.add_argument("--skip-common-tests", action="store_true",
+                        help="For root Gradle launchers whose :common:test prerequisite already passed")
+    parser.add_argument("--dry-run", action="store_true", help="Inspect the native client/server task graph without launching")
     args = parser.parse_args()
+    if args.skip_common_tests and args.action not in ("all", "test"):
+        parser.error("--skip-common-tests is only valid for all or test")
+    if args.dry_run and args.action not in ("client", "server"):
+        parser.error("--dry-run is only valid for client or server")
+    if args.action in ("client", "server"):
+        if not args.target:
+            parser.error(f"{args.action} requires a target")
+        tasks = ["runClient" if args.action == "client" else "runServer"]
+        if args.dry_run:
+            tasks.append("--dry-run")
+        return run(ROOT / "versions" / args.target, tasks)
     original, semantic, previous = read_version()
     if args.action == "plan":
         print(json.dumps({"mod_version": semantic, "build_number": previous + 1, "full_version": f"{semantic}.{previous + 1}"}))
@@ -132,7 +146,7 @@ def main():
         persist_version(original, args.number)
         return 0
     if args.action == "test":
-        status = run(ROOT, [":common:test"])
+        status = 0 if args.skip_common_tests else run(ROOT, [":common:test"])
         for mc in VERSIONS:
             status = run(ROOT / "versions" / mc, ["test"]) or status
         return status
@@ -152,7 +166,7 @@ def main():
     try:
         # Re-read while holding the same lock used by direct Gradle builds.
         original, semantic, previous = read_version()
-        status = run(ROOT, [":common:test"])
+        status = 0 if args.skip_common_tests else run(ROOT, [":common:test"])
         if status:
             return status
         failures = []
