@@ -20,11 +20,11 @@ def read_version():
         VERSION_FILE.write_text("mod_version=1.0.0\nbuild_number=0\n", encoding="utf-8")
     original = VERSION_FILE.read_bytes()
     text = original.decode("utf-8")
-    semantic = re.findall(r"(?m)^\s*mod_version\s*[:=]\s*(\S+)\s*$", text)
-    number = re.findall(r"(?m)^\s*build_number\s*[:=]\s*([0-9]+)[ \t]*\r?$", text)
+    semantic = [v.strip() for v in re.findall(r"(?m)^[ \t]*mod_version[ \t]*[:=][ \t]*([^\r\n]*)", text)]
+    number = [v.strip() for v in re.findall(r"(?m)^[ \t]*build_number[ \t]*[:=][ \t]*([^\r\n]*)", text)]
     if len(semantic) != 1 or not re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?", semantic[0]):
         raise ValueError("version.properties must contain one semantic mod_version (e.g. 1.0.0)")
-    if len(number) != 1 or int(number[0]) >= 2**63 - 1:
+    if len(number) != 1 or not re.fullmatch(r"[0-9]+", number[0]) or int(number[0]) >= 2**63 - 1:
         raise ValueError("version.properties must contain one non-negative build_number below Long.MAX_VALUE")
     return original, semantic[0], int(number[0])
 
@@ -60,13 +60,37 @@ def verify(mc, full_version, directory=None):
     jar = (directory or ROOT / "versions" / mc / "build" / "libs") / f"examplemod-{full_version}+mc{mc}-{config['loader']}.jar"
     if not jar.is_file():
         raise RuntimeError(f"Missing required distributable: {jar}")
+    texture_path = 'block' if int(mc.split('.')[1]) >= 13 else 'blocks'
+    item_path = 'item' if int(mc.split('.')[1]) >= 13 else 'items'
     with zipfile.ZipFile(jar) as archive:
         required = ("com/glowingfederal/examplemod/ExampleMod.class", "com/glowingfederal/examplemod/BuildVersion.class",
                     "com/glowingfederal/examplemod/domain/ExampleGreeting.class",
-                    "assets/examplemod/textures/blocks/example_block.png", "assets/examplemod/textures/items/example_item.png")
+                    f"assets/examplemod/textures/{texture_path}/example_block.png", f"assets/examplemod/textures/{item_path}/example_item.png")
         for path in required:
             if path not in archive.namelist():
                 raise RuntimeError(f"{jar.name} is missing {path}")
+        if full_version.encode() not in archive.read("com/glowingfederal/examplemod/BuildVersion.class"):
+            raise RuntimeError(f"{jar.name} has an inconsistent generated version constant")
+        names = archive.namelist()
+        if len(names) != len(set(names)):
+            raise RuntimeError(f"{jar.name} contains duplicate archive entries")
+        for path in names:
+            if path.startswith("assets/examplemod/") and path.endswith(".json"):
+                resource = archive.read(path).decode()
+                if "${" in resource:
+                    raise RuntimeError(f"{jar.name} contains unexpanded resource tokens: {path}")
+                json.loads(resource)
+            if path.startswith("com/glowingfederal/examplemod/") and path.endswith(".class"):
+                major = int.from_bytes(archive.read(path)[6:8], "big")
+                if major > config["target_java"] + 44:
+                    raise RuntimeError(f"{path} exceeds the declared runtime Java level")
+        if int(mc.split('.')[1]) >= 8:
+            model = json.loads(archive.read("assets/examplemod/models/item/example_item.json"))
+            parent = "builtin/generated" if mc == "1.8.9" else "item/generated"
+            if model["parent"] != parent:
+                raise RuntimeError(f"{jar.name} has an incompatible item-model parent")
+            if model["textures"]["layer0"] != f"examplemod:{item_path}/example_item":
+                raise RuntimeError(f"{jar.name} has an incompatible texture atlas path")
         metadata = "META-INF/neoforge.mods.toml" if config['loader'] == "neoforge" else "mcmod.info" if mc in VERSIONS[:4] else "META-INF/mods.toml"
         if full_version not in archive.read(metadata).decode():
             raise RuntimeError(f"{jar.name} has inconsistent mod metadata")

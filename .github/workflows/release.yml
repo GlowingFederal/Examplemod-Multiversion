@@ -1,0 +1,80 @@
+name: Eight-target production release
+on:
+  push:
+    tags: ['v*']
+permissions:
+  contents: read
+concurrency:
+  group: examplemod-production-release
+  cancel-in-progress: false
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      mod-version: ${{ steps.version.outputs.mod_version }}
+      build-number: ${{ steps.version.outputs.build_number }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - id: version
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          python3 - <<'PY'
+          import json, os, subprocess
+          plan = json.loads(subprocess.check_output(['python3', 'scripts/build.py', 'plan']))
+          if os.environ['RELEASE_TAG'] != 'v' + plan['full_version']:
+              raise SystemExit('Tag must be v' + plan['full_version'] + ' for this version.properties snapshot')
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as stream:
+              for key, value in plan.items():
+                  stream.write(f'{key}={value}\n')
+          PY
+  builds:
+    needs: plan
+    uses: ./.github/workflows/build-matrix.yml
+    with:
+      mod-version: ${{ needs.plan.outputs.mod-version }}
+      build-number: ${{ needs.plan.outputs.build-number }}
+  persist:
+    needs: [plan, builds]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: main
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          pattern: examplemod-mc*
+          path: release-jars
+          merge-multiple: true
+      - name: Persist only a complete successful release
+        env:
+          MOD_VERSION: ${{ needs.plan.outputs.mod-version }}
+          BUILD_NUMBER: ${{ needs.plan.outputs.build-number }}
+        run: |
+          python3 - <<'PY'
+          import os, sys
+          sys.path.insert(0, 'scripts')
+          import build
+          _, semantic, number = build.read_version()
+          if semantic != os.environ['MOD_VERSION'] or number + 1 != int(os.environ['BUILD_NUMBER']):
+              raise SystemExit('main version.properties changed since release planning; refusing to overwrite it')
+          PY
+          python3 scripts/build.py persist --number "$BUILD_NUMBER" --artifacts release-jars
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: examplemod-release
+          path: |
+            release-jars/*.jar
+            version.properties
+          if-no-files-found: error
+      - name: Commit the successful production counter last
+        env:
+          BUILD_NUMBER: ${{ needs.plan.outputs.build-number }}
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add version.properties
+          git commit -m "Advance production build number to $BUILD_NUMBER"
+          git push origin HEAD:main

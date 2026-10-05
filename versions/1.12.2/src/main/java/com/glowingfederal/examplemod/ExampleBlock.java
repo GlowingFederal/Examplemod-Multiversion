@@ -6,10 +6,10 @@ import net.minecraft.creativetab.CreativeTabs;
 
 final class ExampleBlock extends Block {
     ExampleBlock() {
-        super(Material.rock);
-        setUnlocalizedName("example_block");
+        super(Material.ROCK);
+        setTranslationKey("example_block");
         setHardness(1.5F);
-        setCreativeTab(CreativeTabs.tabBlock);
+        setCreativeTab(CreativeTabs.BUILDING_BLOCKS);
         
     }
 }

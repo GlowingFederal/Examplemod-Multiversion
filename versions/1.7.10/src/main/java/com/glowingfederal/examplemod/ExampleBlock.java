@@ -10,6 +10,6 @@ final class ExampleBlock extends Block {
         setBlockName("example_block");
         setHardness(1.5F);
         setCreativeTab(CreativeTabs.tabBlock);
-        setTextureName("examplemod:example_block");
+        setBlockTextureName("examplemod:example_block");
     }
 }

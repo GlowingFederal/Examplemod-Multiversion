@@ -5,6 +5,10 @@ import net.minecraft.command.CommandBase;
 import net.minecraft.command.ICommandSender;
 
 final class ExampleCommand extends CommandBase {
+    // Its raw Comparable signature needs an explicit Object comparator in adapters.
+    @Override public int compareTo(Object other) {
+        return super.compareTo((net.minecraft.command.ICommand) other);
+    }
     @Override public String getCommandName() { return "examplemod"; }
     @Override public String getCommandUsage(ICommandSender sender) { return "/examplemod"; }
     @Override public int getRequiredPermissionLevel() { return 0; }

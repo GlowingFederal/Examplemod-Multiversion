@@ -11,16 +11,17 @@ def originalBytes = Files.readAllBytes(versionFile.toPath())
 def versionText = new String(originalBytes, 'UTF-8')
 def values = new Properties()
 values.load(new StringReader(versionText))
-def semantic = values.getProperty('mod_version')
-def numberText = values.getProperty('build_number')
+def semantic = values.getProperty('mod_version')?.trim()
+def numberText = values.getProperty('build_number')?.trim()
 if (semantic == null || !(semantic ==~ /[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?/)) {
     throw new GradleException('version.properties: mod_version must be a semantic version, e.g. 1.0.0')
 }
 if (numberText == null || !(numberText ==~ /[0-9]+/) || numberText.toBigInteger() > Long.MAX_VALUE - 1) {
     throw new GradleException('version.properties: build_number must be a non-negative integer below Long.MAX_VALUE')
 }
-if ((versionText =~ /(?m)^\s*build_number\s*[:=]/).count != 1) {
-    throw new GradleException('version.properties must contain exactly one build_number assignment')
+if ((versionText =~ /(?m)^\s*build_number\s*[:=]/).count != 1 ||
+        (versionText =~ /(?m)^\s*mod_version\s*[:=]/).count != 1) {
+    throw new GradleException('version.properties must contain exactly one mod_version and build_number assignment')
 }
 def oldNumber = numberText.toLong()
 ext.modVersion = semantic
@@ -43,19 +44,18 @@ def applyNumber = { long n ->
     project.version = project.ext.fullVersion
     def name = "examplemod-${project.version}+mc${project.minecraftTarget}-${project.loaderTarget}.jar"
     def separate = project.tasks.findByName('remapJar') ?: (project.minecraftTarget in ['1.7.10', '1.18.2', '1.20.1'] ? project.tasks.findByName('reobfJar') : null)
-    if (project.tasks.jar.hasProperty('archiveFileName')) {
-        project.tasks.jar.archiveFileName.set(separate == null ? name : name.replace('.jar', '-dev.jar'))
-        if (separate != null) separate.archiveFileName.set(name)
-    } else {
-        project.tasks.jar.archiveName = name
-    }
+    project.tasks.jar.archiveFileName.set(separate == null ? name : name.replace('.jar', '-dev.jar'))
+    if (separate != null) separate.archiveFileName.set(name)
 }
 applyNumber(oldNumber)
 
 gradle.taskGraph.whenReady { graph ->
     // Only explicitly requested packaging consumes a number. runClient may depend on jar.
-    production = gradle.startParameter.taskNames.any { requested ->
+    production = !gradle.startParameter.dryRun && gradle.startParameter.taskNames.any { requested ->
         requested.tokenize(':').last() in ['build', 'jar', 'assemble', 'reobf', 'reobfJar', 'remapJar', 'release']
+    }
+    if (production && oldNumber == Long.MAX_VALUE - 1) {
+        throw new GradleException('Production build_number exhausted its supported integer range')
     }
     if (coordinated) {
         def requestedNumber = project.property('releaseBuildNumber').toString()
@@ -84,6 +84,16 @@ gradle.buildFinished { result ->
             if (!output.isFile()) {
                 throw new GradleException("Successful packaging did not produce ${output}")
             }
+            def archive = new java.util.jar.JarFile(output)
+            try {
+                if (archive.manifest.mainAttributes.getValue('Implementation-Version') != project.fullVersion) {
+                    throw new GradleException('Production manifest version does not match the allocated build number')
+                }
+                def constant = archive.getJarEntry('com/glowingfederal/examplemod/BuildVersion.class')
+                if (constant == null || !new String(archive.getInputStream(constant).bytes, 'ISO-8859-1').contains(project.fullVersion)) {
+                    throw new GradleException('Production version constant does not match the allocated build number')
+                }
+            } finally { archive.close() }
             if (!Arrays.equals(originalBytes, Files.readAllBytes(versionFile.toPath()))) {
                 throw new GradleException('version.properties changed while packaging; refusing to overwrite it')
             }

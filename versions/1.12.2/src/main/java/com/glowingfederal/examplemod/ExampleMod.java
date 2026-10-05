@@ -9,7 +9,6 @@ import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.item.Item;
 
 import net.minecraftforge.fml.common.SidedProxy;
-import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 
 @Mod(modid = ExampleMod.MODID, name = "ExampleMod", version = BuildVersion.VERSION)
 public final class ExampleMod {
@@ -22,15 +21,15 @@ public final class ExampleMod {
     @Mod.EventHandler
     public void preInit(FMLPreInitializationEvent event) {
         exampleBlock = new ExampleBlock();
-        exampleItem = new Item().setUnlocalizedName("example_item").setCreativeTab(CreativeTabs.tabMisc);
+        exampleItem = new Item().setTranslationKey("example_item").setCreativeTab(CreativeTabs.MISC);
         exampleBlock.setRegistryName(MODID, "example_block");
         exampleItem.setRegistryName(MODID, "example_item");
         GameRegistry.findRegistry(Block.class).register(exampleBlock);
         GameRegistry.findRegistry(Item.class).register(exampleItem);
         GameRegistry.findRegistry(Item.class).register(new net.minecraft.item.ItemBlock(exampleBlock)
                 .setRegistryName(exampleBlock.getRegistryName()));
+        proxy.registerModels();
     }
-    @Mod.EventHandler public void init(FMLInitializationEvent event) { proxy.registerModels(); }
     @Mod.EventHandler
     public void serverStarting(FMLServerStartingEvent event) {
         event.registerServerCommand(new ExampleCommand());

@@ -22,3 +22,4 @@ Thumbs.db
 *.credentials
 .build-number.lock/
 __pycache__/
+.ci-gradle/
