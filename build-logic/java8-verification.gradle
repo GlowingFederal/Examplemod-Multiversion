@@ -1,0 +1,31 @@
+// Check the actual development output, including generated/auxiliary classes.
+def developmentClasses = files(fileTree("${buildDir}/classes") { include '**/*.class' },
+        sourceSets.main.output.classesDirs.asFileTree.matching { include '**/*.class' })
+def verifyDevelopmentClasses = tasks.register('verifyDevelopmentClasses') {
+    group = 'verification'
+    description = 'Reject development classfiles that cannot run on Java 8.'
+    dependsOn tasks.named('classes')
+    mustRunAfter tasks.withType(JavaCompile)
+    inputs.files developmentClasses
+    doLast {
+        def classes = developmentClasses.files
+        if (classes.empty) throw new GradleException('No development classes were produced')
+        classes.each { file ->
+            file.withDataInputStream { stream ->
+                if (stream.readInt() != (0xCAFEBABE as int)) {
+                    throw new GradleException("Invalid classfile header: ${file}")
+                }
+                def minor = stream.readUnsignedShort()
+                def major = stream.readUnsignedShort()
+                if (major > 52 || minor == 65535) {
+                    throw new GradleException("${file}: class version ${major}.${minor} exceeds Java 8 (52.0)")
+                }
+            }
+        }
+        logger.lifecycle("Verified ${classes.size()} development classes: Java 8 compatible")
+    }
+}
+tasks.named('check') { dependsOn verifyDevelopmentClasses }
+tasks.matching { it.name in ['runClient', 'runServer', 'preRunClient', 'preRunServer', 'jar'] }.configureEach {
+    dependsOn verifyDevelopmentClasses
+}

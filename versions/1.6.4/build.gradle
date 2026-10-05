@@ -7,15 +7,66 @@ ext.javaTarget = 8
 apply from: '../../build-logic/version.gradle'
 apply from: '../../build-logic/shared.gradle'
 java.toolchain.languageVersion = JavaLanguageVersion.of(21)
-tasks.withType(JavaCompile).configureEach { options.release = 8 }
+
+// Isolate the legacy remapper settings from Unimined's default global Minecraft cache.
+unimined.useGlobalCache = false
+// FMLSanityChecker URL-decodes literal '+' in Unimined's JAR filename.
+// Copy the unchanged runtime JAR to a safe name; keep certificate checks visible.
+def runtimeJars = [:]
+def runtimeCopies = [:]
+['client', 'server'].each { side ->
+    runtimeJars[side] = objects.fileCollection()
+    runtimeCopies[side] = tasks.register("prepare${side.capitalize()}ForgeRuntime", Copy) {
+        from provider {
+            tasks.named("run${side.capitalize()}").get()
+            runtimeJars[side]
+        }
+        into layout.buildDirectory.dir("forge164-runtime/${side}")
+        rename { 'minecraft-forge.jar' }
+        doFirst {
+            if (runtimeJars[side].files.size() != 1) {
+                throw new GradleException('Expected one Forge 1.6.4 runtime Minecraft JAR')
+            }
+        }
+    }
+    tasks.matching { it.name == "preRun${side.capitalize()}" }.configureEach {
+        dependsOn runtimeCopies[side]
+    }
+}
+
 unimined.minecraft {
     version '1.6.4'
+    // ASM 4.1 rejects Java 8 classfiles before FML can discover the mod.
+    replaceLibraryVersion('org.ow2.asm', 'asm-all', '5.0.3')
     
     runs {
+        all {
+            def side = name == 'runClient' ? 'client' : 'server'
+            def originalClasspath = classpath
+            def minecraftJar = originalClasspath.filter {
+                it.name.startsWith('forge-1.6.4-') && it.name.endsWith('.jar')
+            }
+            runtimeJars[side].from(minecraftJar)
+            classpath = originalClasspath - minecraftJar + files(
+                    layout.buildDirectory.file("forge164-runtime/${side}/minecraft-forge.jar"))
+        }
         config('client') { javaVersion = JavaVersion.VERSION_1_8 }
-        config('server') { javaVersion = JavaVersion.VERSION_1_8 }
+        config('server') {
+            javaVersion = JavaVersion.VERSION_1_8
+            standardInput = System.in
+            if (project.hasProperty('devServerPort')) {
+                def port = project.property('devServerPort').toString()
+                args '--port', port
+                workingDir project.file("run/server-${port}")
+            }
+        }
     }
     minecraftForge { loader '9.11.1.1345' }
-    minecraftRemapper.config { ignoreConflicts(true) }
+    minecraftRemapper.config {
+        ignoreConflicts(true)
+        // FML's ASM4 visitors cannot consume synthesized Java 8 MethodParameters.
+        skipLocalVariableMapping(true)
+        renameInvalidLocals(false)
+    }
 }
 jar.finalizedBy 'remapJar'

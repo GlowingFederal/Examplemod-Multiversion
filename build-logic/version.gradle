@@ -3,6 +3,15 @@ import java.nio.file.StandardCopyOption
 import java.nio.file.AtomicMoveNotSupportedException
 
 // Shared by old and new Gradle. No configuration-cache support: this owns a transaction.
+ext.archiveVerification = new groovy.json.JsonSlurper().parse(new File(project.ext.repositoryRoot, 'verification.json'))
+def verification = project.ext.archiveVerification
+def packagePath = verification.base_package.replace('.', '/')
+def versionClassPath = verification.version_class.replace('{package_path}', packagePath)
+def archiveName = { String full ->
+    verification.archive_pattern.replace('{mod_id}', verification.mod_id)
+            .replace('{full_version}', full).replace('{mc}', project.minecraftTarget)
+            .replace('{loader}', project.loaderTarget)
+}
 def versionFile = new File(project.ext.repositoryRoot, 'version.properties')
 if (!versionFile.exists()) {
     versionFile.text = 'mod_version=1.0.0\nbuild_number=0\n'
@@ -45,7 +54,7 @@ def applyNumber = { long n ->
     project.ext.displayVersion = project.ext.fullVersion
     project.ext.modVersionState.fullVersion = project.ext.fullVersion
     project.version = project.ext.fullVersion
-    def name = "examplemod-${project.version}+mc${project.minecraftTarget}-${project.loaderTarget}.jar"
+    def name = archiveName(project.version.toString())
     def separate = project.tasks.findByName('remapJar') ?: (project.minecraftTarget in ['1.7.10', '1.18.2', '1.20.1'] ? project.tasks.findByName('reobfJar') : null)
     project.tasks.jar.archiveFileName.set(separate == null ? name : name.replace('.jar', '-dev.jar'))
     if (separate != null) separate.archiveFileName.set(name)
@@ -83,7 +92,7 @@ gradle.taskGraph.whenReady { graph ->
 gradle.buildFinished { result ->
     try {
         if (ownsLock && production && result.failure == null) {
-            def output = new File(project.buildDir, "libs/examplemod-${project.fullVersion}+mc${project.minecraftTarget}-${project.loaderTarget}.jar")
+            def output = new File(project.buildDir, "libs/${archiveName(project.fullVersion.toString())}")
             if (!output.isFile()) {
                 throw new GradleException("Successful packaging did not produce ${output}")
             }
@@ -92,7 +101,7 @@ gradle.buildFinished { result ->
                 if (archive.manifest.mainAttributes.getValue('Implementation-Version') != project.fullVersion) {
                     throw new GradleException('Production manifest version does not match the allocated build number')
                 }
-                def constant = archive.getJarEntry('com/glowingfederal/examplemod/BuildVersion.class')
+                def constant = archive.getJarEntry(versionClassPath)
                 if (constant == null || !new String(archive.getInputStream(constant).bytes, 'ISO-8859-1').contains(project.fullVersion)) {
                     throw new GradleException('Production version constant does not match the allocated build number')
                 }

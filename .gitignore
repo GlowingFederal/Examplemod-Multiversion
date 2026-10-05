@@ -9,6 +9,9 @@ runs/
 eclipse/
 .idea/
 *.iml
+# Legacy Gradle idea/IDEA workspace generation outside the .idea directory.
+*.ipr
+*.iws
 .project
 .classpath
 .settings/

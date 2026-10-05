@@ -9,4 +9,9 @@ repositories { mavenCentral() }
 dependencies { testImplementation 'junit:junit:4.13.2' }
 compileJava { options.release = 8; options.encoding = 'UTF-8' }
 compileTestJava { options.release = 8; options.encoding = 'UTF-8' }
+tasks.withType(JavaCompile).configureEach {
+    // Java 8 is intentional; keep source warnings and all other diagnostics visible.
+    options.compilerArgs.add('-Xlint:-options')
+}
 // No Minecraft or loader dependencies belong in this project.
+apply from: '../build-logic/java8-verification.gradle'

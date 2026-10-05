@@ -1,4 +1,8 @@
-group = 'com.glowingfederal.examplemod'
+def verification = project.ext.archiveVerification
+group = verification.base_package
+def versionClassPath = verification.version_class.replace('{package_path}', verification.base_package.replace('.', '/'))
+def versionClassName = versionClassPath.substring(versionClassPath.lastIndexOf('/') + 1).replace('.class', '')
+def versionPackage = versionClassPath.substring(0, versionClassPath.lastIndexOf('/')).replace('/', '.')
 def versionState = project.ext.modVersionState
 def minecraftVersion = project.minecraftTarget
 def languageSource = new File(repositoryRoot, 'common/assets/en_us.properties')
@@ -15,24 +19,39 @@ if (project.minecraftTarget != '1.7.10') {
 }
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
+    if (project.javaTarget == 8 && minecraftVersion != '1.7.10') {
+        // javac 8 uses source/target 8; newer compilers also enforce the Java 8 API surface.
+        options.release.set(javaCompiler.map { it.metadata.languageVersion.asInt() > 8 ? 8 : null })
+    }
     if (minecraftVersion in ['1.6.4', '1.8.9', '1.12.2']) {
         // Modern javac intentionally targets Java 8; retain every other warning category.
         options.compilerArgs.add('-Xlint:-options')
     }
 }
 
-def generatedJava = file("${buildDir}/generated/examplemod/java")
+if (project.javaTarget == 8) apply from: new File(repositoryRoot, 'build-logic/java8-verification.gradle')
+
+if (minecraftVersion in ['1.6.4', '1.8.9', '1.12.2']) {
+    // Unimined adds these compiler annotations to minecraftLibraries by default.
+    configurations.matching { it.name == 'minecraftLibraries' }.configureEach {
+        exclude group: 'org.jetbrains', module: 'annotations'
+    }
+    dependencies { compileOnly 'org.jetbrains:annotations:24.0.1' }
+}
+
+def generatedJava = file("${buildDir}/generated/${verification.mod_id}/java")
 sourceSets.main.java.srcDir generatedJava
 task generateVersion {
     inputs.property('fullVersion', { versionState.fullVersion })
+    inputs.property('versionClass', versionClassPath)
     outputs.dir generatedJava
     doLast {
-        def destination = new File(generatedJava, 'com/glowingfederal/examplemod/BuildVersion.java')
+        def destination = new File(generatedJava, versionClassPath.replace('.class', '.java'))
         destination.parentFile.mkdirs()
-        destination.text = """package com.glowingfederal.examplemod;
-public final class BuildVersion {
+        destination.text = """package ${versionPackage};
+public final class ${versionClassName} {
     public static final String VERSION = "${versionState.fullVersion}";
-    private BuildVersion() {}
+    private ${versionClassName}() {}
 }
 """
     }
@@ -77,7 +96,7 @@ processResources {
     }
 }
 jar {
-    manifest { attributes 'Implementation-Title': 'ExampleMod', 'Implementation-Version': project.fullVersion }
+    manifest { attributes 'Implementation-Title': verification.display_name, 'Implementation-Version': project.fullVersion }
     preserveFileTimestamps = false
     reproducibleFileOrder = true
 }

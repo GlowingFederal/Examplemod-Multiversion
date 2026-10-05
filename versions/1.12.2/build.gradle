@@ -7,7 +7,6 @@ ext.javaTarget = 8
 apply from: '../../build-logic/version.gradle'
 apply from: '../../build-logic/shared.gradle'
 java.toolchain.languageVersion = JavaLanguageVersion.of(21)
-tasks.withType(JavaCompile).configureEach { options.release = 8 }
 unimined.minecraft {
     version '1.12.2'
     // Forge's FG3 userdev supplies its exact SRG config; retain the stable MCP name layer.

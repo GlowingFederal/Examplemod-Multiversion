@@ -1,0 +1,390 @@
+{
+  "mod_id": "examplemod",
+  "base_package": "com.glowingfederal.examplemod",
+  "display_name": "ExampleMod",
+  "archive_pattern": "{mod_id}-{full_version}+mc{mc}-{loader}.jar",
+  "version_class": "{package_path}/BuildVersion.class",
+  "required_classes": [
+    "{package_path}/ExampleMod.class"
+  ],
+  "required_shared_classes": [
+    "{package_path}/domain/ExampleGreeting.class"
+  ],
+  "class_roots": [
+    "{package_path}/"
+  ],
+  "resource_roots": [
+    "assets/{mod_id}/",
+    "data/{mod_id}/"
+  ],
+  "required_assets": [
+    "assets/{mod_id}/textures/{block_textures}/example_block.png",
+    "assets/{mod_id}/textures/{item_textures}/example_item.png",
+    "assets/{mod_id}/lang/{language_file}"
+  ],
+  "metadata_profiles": {
+    "legacy": {
+      "path": "mcmod.info",
+      "json_values": {
+        "0.modid": "{mod_id}",
+        "0.name": "{display_name}",
+        "0.version": "{full_version}",
+        "0.mcversion": "{mc}"
+      }
+    },
+    "forge": {
+      "path": "META-INF/mods.toml",
+      "sections": [
+        {
+          "table": "",
+          "fields": {
+            "modLoader": "javafml",
+            "loaderVersion": "{fml_range}"
+          }
+        },
+        {
+          "table": "mods",
+          "fields": {
+            "modId": "{mod_id}",
+            "version": "{full_version}",
+            "displayName": "{display_name}"
+          }
+        },
+        {
+          "table": "dependencies.{mod_id}",
+          "fields": {
+            "modId": "{loader}",
+            "versionRange": "{loader_range}",
+            "mandatory": true
+          }
+        },
+        {
+          "table": "dependencies.{mod_id}",
+          "fields": {
+            "modId": "minecraft",
+            "versionRange": "[{mc}]",
+            "mandatory": true
+          }
+        }
+      ]
+    },
+    "neoforge": {
+      "path": "META-INF/neoforge.mods.toml",
+      "sections": [
+        {
+          "table": "",
+          "fields": {
+            "modLoader": "javafml",
+            "loaderVersion": "{fml_range}"
+          }
+        },
+        {
+          "table": "mods",
+          "fields": {
+            "modId": "{mod_id}",
+            "version": "{full_version}",
+            "displayName": "{display_name}"
+          }
+        },
+        {
+          "table": "dependencies.{mod_id}",
+          "fields": {
+            "modId": "{loader}",
+            "versionRange": "{loader_range}",
+            "type": "required"
+          }
+        },
+        {
+          "table": "dependencies.{mod_id}",
+          "fields": {
+            "modId": "minecraft",
+            "versionRange": "[{mc}]",
+            "type": "required"
+          }
+        }
+      ]
+    }
+  },
+  "targets": {
+    "1.6.4": {
+      "metadata_profile": "legacy",
+      "block_textures": "blocks",
+      "item_textures": "items",
+      "language_file": "en_US.lang",
+      "required_classes": [
+        "{package_path}/ExampleBlock.class",
+        "{package_path}/ExampleCommand.class"
+      ],
+      "json_checks": [],
+      "remapping": {
+        "required": true,
+        "checks": [
+          {
+            "class": "{package_path}/ExampleCommand.class",
+            "present": [
+              "func_71518_a"
+            ],
+            "absent": [
+              "getCommandName"
+            ]
+          }
+        ]
+      },
+      "required_assets": []
+    },
+    "1.7.10": {
+      "metadata_profile": "legacy",
+      "block_textures": "blocks",
+      "item_textures": "items",
+      "language_file": "en_US.lang",
+      "required_classes": [
+        "{package_path}/ExampleBlock.class",
+        "{package_path}/ExampleCommand.class"
+      ],
+      "json_checks": [],
+      "remapping": {
+        "required": true,
+        "checks": [
+          {
+            "class": "{package_path}/ExampleCommand.class",
+            "present": [
+              "func_71518_a"
+            ],
+            "absent": [
+              "getCommandName"
+            ]
+          }
+        ]
+      },
+      "required_assets": []
+    },
+    "1.8.9": {
+      "metadata_profile": "legacy",
+      "block_textures": "blocks",
+      "item_textures": "items",
+      "language_file": "en_US.lang",
+      "required_classes": [
+        "{package_path}/ExampleBlock.class",
+        "{package_path}/ExampleCommand.class",
+        "{package_path}/CommonProxy.class",
+        "{package_path}/ClientProxy.class"
+      ],
+      "json_checks": [
+        {
+          "path": "assets/{mod_id}/models/item/example_item.json",
+          "values": {
+            "parent": "builtin/generated",
+            "textures.layer0": "{mod_id}:{item_textures}/example_item"
+          }
+        }
+      ],
+      "remapping": {
+        "required": true,
+        "checks": [
+          {
+            "class": "{package_path}/ExampleCommand.class",
+            "present": [
+              "func_71518_a"
+            ],
+            "absent": [
+              "getCommandName"
+            ]
+          }
+        ]
+      },
+      "required_assets": [
+        "assets/{mod_id}/blockstates/example_block.json",
+        "assets/{mod_id}/models/block/example_block.json",
+        "assets/{mod_id}/models/item/example_block.json"
+      ]
+    },
+    "1.12.2": {
+      "metadata_profile": "legacy",
+      "block_textures": "blocks",
+      "item_textures": "items",
+      "language_file": "en_us.lang",
+      "required_classes": [
+        "{package_path}/ExampleBlock.class",
+        "{package_path}/ExampleCommand.class",
+        "{package_path}/CommonProxy.class",
+        "{package_path}/ClientProxy.class"
+      ],
+      "json_checks": [
+        {
+          "path": "assets/{mod_id}/models/item/example_item.json",
+          "values": {
+            "parent": "item/generated",
+            "textures.layer0": "{mod_id}:{item_textures}/example_item"
+          }
+        }
+      ],
+      "remapping": {
+        "required": true,
+        "checks": [
+          {
+            "class": "{package_path}/ExampleCommand.class",
+            "present": [
+              "func_71518_a"
+            ],
+            "absent": [
+              "getCommandName"
+            ]
+          }
+        ]
+      },
+      "required_assets": [
+        "assets/{mod_id}/blockstates/example_block.json",
+        "assets/{mod_id}/models/block/example_block.json",
+        "assets/{mod_id}/models/item/example_block.json"
+      ]
+    },
+    "1.16.5": {
+      "metadata_profile": "forge",
+      "block_textures": "block",
+      "item_textures": "item",
+      "language_file": "en_us.json",
+      "required_classes": [],
+      "json_checks": [
+        {
+          "path": "assets/{mod_id}/models/item/example_item.json",
+          "values": {
+            "parent": "item/generated",
+            "textures.layer0": "{mod_id}:{item_textures}/example_item"
+          }
+        }
+      ],
+      "remapping": {
+        "required": true,
+        "checks": [
+          {
+            "class": "{package_path}/ExampleMod.class",
+            "present": [
+              "func_197030_a"
+            ],
+            "absent": [
+              "of"
+            ]
+          }
+        ]
+      },
+      "fml_range": "[36,)",
+      "loader_range": "[36.2.42,)",
+      "required_assets": [
+        "assets/{mod_id}/blockstates/example_block.json",
+        "assets/{mod_id}/models/block/example_block.json",
+        "assets/{mod_id}/models/item/example_block.json",
+        "pack.mcmeta",
+        "data/{mod_id}/loot_tables/blocks/example_block.json"
+      ]
+    },
+    "1.18.2": {
+      "metadata_profile": "forge",
+      "block_textures": "block",
+      "item_textures": "item",
+      "language_file": "en_us.json",
+      "required_classes": [],
+      "json_checks": [
+        {
+          "path": "assets/{mod_id}/models/item/example_item.json",
+          "values": {
+            "parent": "item/generated",
+            "textures.layer0": "{mod_id}:{item_textures}/example_item"
+          }
+        }
+      ],
+      "remapping": {
+        "required": true,
+        "checks": [
+          {
+            "class": "{package_path}/ExampleMod.class",
+            "present": [
+              "m_81368_"
+            ],
+            "absent": [
+              "literal"
+            ]
+          }
+        ]
+      },
+      "fml_range": "[40,)",
+      "loader_range": "[40.3.12,)",
+      "required_assets": [
+        "assets/{mod_id}/blockstates/example_block.json",
+        "assets/{mod_id}/models/block/example_block.json",
+        "assets/{mod_id}/models/item/example_block.json",
+        "pack.mcmeta",
+        "data/{mod_id}/loot_tables/blocks/example_block.json"
+      ]
+    },
+    "1.20.1": {
+      "metadata_profile": "forge",
+      "block_textures": "block",
+      "item_textures": "item",
+      "language_file": "en_us.json",
+      "required_classes": [],
+      "json_checks": [
+        {
+          "path": "assets/{mod_id}/models/item/example_item.json",
+          "values": {
+            "parent": "item/generated",
+            "textures.layer0": "{mod_id}:{item_textures}/example_item"
+          }
+        }
+      ],
+      "remapping": {
+        "required": true,
+        "checks": [
+          {
+            "class": "{package_path}/ExampleMod.class",
+            "present": [
+              "m_81368_"
+            ],
+            "absent": [
+              "literal"
+            ]
+          }
+        ]
+      },
+      "fml_range": "[47,)",
+      "loader_range": "[47.4.10,)",
+      "required_assets": [
+        "assets/{mod_id}/blockstates/example_block.json",
+        "assets/{mod_id}/models/block/example_block.json",
+        "assets/{mod_id}/models/item/example_block.json",
+        "pack.mcmeta",
+        "data/{mod_id}/loot_tables/blocks/example_block.json"
+      ]
+    },
+    "1.21.11": {
+      "metadata_profile": "neoforge",
+      "block_textures": "block",
+      "item_textures": "item",
+      "language_file": "en_us.json",
+      "required_classes": [],
+      "json_checks": [
+        {
+          "path": "assets/{mod_id}/models/item/example_item.json",
+          "values": {
+            "parent": "item/generated",
+            "textures.layer0": "{mod_id}:{item_textures}/example_item"
+          }
+        }
+      ],
+      "remapping": {
+        "required": false,
+        "checks": []
+      },
+      "fml_range": "[4,)",
+      "loader_range": "[21.11.45,)",
+      "required_assets": [
+        "assets/{mod_id}/blockstates/example_block.json",
+        "assets/{mod_id}/models/block/example_block.json",
+        "assets/{mod_id}/models/item/example_block.json",
+        "pack.mcmeta",
+        "data/{mod_id}/loot_table/blocks/example_block.json",
+        "assets/{mod_id}/items/example_item.json",
+        "assets/{mod_id}/items/example_block.json"
+      ]
+    }
+  }
+}

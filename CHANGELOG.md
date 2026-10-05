@@ -20,3 +20,18 @@
 - Replace the common project's deprecated Java convention API and remove task-time Project access from shared version/resource actions without changing the production allocator.
 - Supply Legacy Forge's exact MCP ZIPs through ModDevGradle's artifact-manifest API, enable the 1.16.5 idea plugin and remove redundant 1.8.9/1.12.2 SRG mapping declarations.
 - Forward full/failing warning diagnostics through root launchers and document retained upstream deprecations; keep normal compiler warnings, Gradle diagnostics and build failures visible.
+
+2026-10-05 16:34 — Make archive expectations reusable and clarify native development
+
+- Centralize project identity, production archive naming, generated version-class paths, required shared/adapter classes and resources, metadata profiles and per-target remapping symbols in verification.json.
+- Replace ExampleMod-specific verifier rules with configured expectations; check exact loader metadata, generated/manifest versions, target bytecode levels and remapped symbols while preserving isolated builds and the existing version transaction.
+- Extend only the intentional Java 8 compiler-options warning suppression to common main/test compilation and ignore generated legacy IDEA project/workspace files while retaining portable .run configurations.
+- Document native IntelliJ synchronization by toolchain, template customization and feature-dependent server-only/client compatibility expectations.
+
+2026-10-05 18:02 — Repair legacy development mod discovery
+
+- Select ASM 5.0.3 for Forge 1.6.4 development so its scanner accepts Java 8 classes. Keep generated BuildVersion source in normal compilation and enforce Java 8 APIs on newer compilers while retaining native javac 8 and GTNH/Jabel contracts.
+- Verify every development class under build/classes and main class outputs before native runs, packaging and checks on all five Java 8 targets, including generated and auxiliary classes.
+- Keep Unimined's JetBrains compiler annotations off the Minecraft runtime classpath on 1.6.4, 1.8.9 and 1.12.2.
+- Isolate 1.6.4 remapping and disable synthesized parameter metadata incompatible with FML's old visitors. Launch an unchanged copy of its Minecraft JAR under a safe filename to avoid FML's plus-to-space URL-decoding error; retain upstream certificate and binary-patch diagnostics.
+- Enable native 1.6.4 server console input and optional isolated development port/config/world directories. Document the ASM launch-library requirement for installed Java 8 environments without introducing mod-specific template logic.
