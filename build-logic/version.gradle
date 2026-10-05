@@ -29,6 +29,8 @@ ext.buildNumber = oldNumber
 ext.fullVersion = "${semantic}.${oldNumber}"
 ext.displayVersion = fullVersion
 version = fullVersion
+// Task actions read this detached state, updated by the existing allocator before execution.
+ext.modVersionState = [fullVersion: fullVersion]
 
 def lockDirectory = new File(project.ext.repositoryRoot, '.build-number.lock')
 def ownsLock = false
@@ -41,6 +43,7 @@ def applyNumber = { long n ->
     project.ext.buildNumber = n
     project.ext.fullVersion = "${semantic}.${n}"
     project.ext.displayVersion = project.ext.fullVersion
+    project.ext.modVersionState.fullVersion = project.ext.fullVersion
     project.version = project.ext.fullVersion
     def name = "examplemod-${project.version}+mc${project.minecraftTarget}-${project.loaderTarget}.jar"
     def separate = project.tasks.findByName('remapJar') ?: (project.minecraftTarget in ['1.7.10', '1.18.2', '1.20.1'] ? project.tasks.findByName('reobfJar') : null)

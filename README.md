@@ -22,12 +22,41 @@ Tooling was selected per generation, considering current maintained replacements
 - **1.6.4:** [Unimined's upstream Forge example](https://github.com/unimined/Unimined/tree/lts/1.4/testing/1.6.4-Forge) supports the Java 8-compatible Forge 1345 release. Its FG2-compatible transformer uses modern downloads/remapping without requiring an abandoned ForgeGradle 1.0 process or a private patched toolchain. The original FG1 userdev exists for 964, but not 1345. The older Forge version and dead HTTP endpoints make that path a poorer baseline.
 - **1.7.10:** [GTNH ExampleMod](https://github.com/GTNewHorizons/ExampleMod1.7.10) is the reference. GTNHGradle supplies RetroFuturaGradle, maintained repositories, IDE support, generic injection and Jabel. Git-derived versioning, automatic buildscript updates and unused publishing/mixin integrations are disabled so the root version file remains authoritative. The pinned upstream plugin uses JDK 25 to run; **Jabel compiles Java 17 syntax against Java 8 APIs and bytecode**. Native modern bytecode is not enabled. JVM Downgrader is unnecessary for this domain function; reconsider it if an adapter needs newer library APIs, auditing bundled stubs and licensing first. Shared code stays within Java 8 syntax/API because the other adapters compile it directly.
 - **1.8.9:** Unimined's FG2-compatible transformer supports this exact Forge generation and stable MCP 22 mappings. It replaces FG2.1's obsolete build environment while preserving a normal Forge output. GTNH's 1.7.10-specific conventions are not applied to this target.
-- **1.12.2:** Unimined supports FG2-compatible Forge builds with stable MCP 39 mappings and the maintained Forge 2864 release. The anatawa12 FG2.3 fork was evaluated as a historical alternative; Unimined avoids the old Gradle/dependency setup while keeping Java 8 output. [The upstream Forge integration example](https://github.com/unimined/Unimined/tree/lts/1.4/testing/1.12.2-Forge-Fabric-Liteloader) also supports other loaders; this repository enables Forge only.
+- **1.12.2:** Unimined uses its FG3-compatible transformer for the maintained Forge 2864 release, with the SRG config supplied by Forge userdev and stable MCP 39 names. The anatawa12 FG2.3 fork was evaluated as a historical alternative; Unimined avoids the old Gradle/dependency setup while keeping Java 8 output. [The upstream Forge integration example](https://github.com/unimined/Unimined/tree/lts/1.4/testing/1.12.2-Forge-Fabric-Liteloader) also supports other loaders; this repository enables Forge only.
 - **1.16.5:** Current official ForgeGradle remains appropriate. [ModDevGradle Legacy Forge](https://github.com/neoforged/ModDevGradle/blob/main/LEGACY.md) starts at Minecraft 1.17, so it does not support this target. ForgeGradle's JDK 8 toolchain compiles the adapter; JDK 21 runs Gradle.
 - **1.18.2 and 1.20.1:** ModDevGradle's maintained Legacy Forge plugin supports these Forge targets, official Mojang mappings and production SRG reobfuscation. It shares conventions with the NeoForge target and avoids keeping another ForgeGradle-specific configuration where unnecessary. The runtime loader remains Forge.
 - **1.21.11:** [The current NeoForge MDK](https://github.com/NeoForgeMDKs/MDK-1.21.11-ModDevGradle) provides the selected loader, Java 21, wrapper and ModDevGradle generation. NeoForge needs no mod reobfuscation pass.
 
 Each `versions/<minecraft>/target.json` records its selected toolchain. Dependencies and wrapper distribution checksums are pinned. Builds may still resolve loader-owned transitive dependencies according to the upstream loader metadata.
+
+### Build warning audit
+
+Normal builds retain Gradle's warning reporting, compiler diagnostics, dependency/remapping errors and ordinary task/cache output. No console filtering or global warning suppression is used. The audit of the pinned tool families found:
+
+| Message / family | Owner | Handling |
+|---|---|---|
+| Obsolete Java 8 source/target options on Unimined's JDK 21 compiler | GRADLE/TOOL INTERNAL (javac compatibility diagnostic) | Only `-Xlint:-options` is added to Java compilation in 1.6.4, 1.8.9 and 1.12.2. Java 8 targeting and other warning categories remain enabled. |
+| JDK 25 restricted `System.load` from Gradle's native-platform library | GRADLE/TOOL INTERNAL | The 1.7.10 wrapper JVM and Gradle daemon receive `--enable-native-access=ALL-UNNAMED`; compiler and Minecraft JVM arguments are unchanged. |
+| Root/common `JavaPluginConvention` deprecation | OUR BUILD LOGIC | Fixed by configuring source/target compatibility through the `java` extension. |
+| Task-time `Project` access in shared version generation, metadata and language actions | OUR BUILD LOGIC | Fixed by capturing paths/target settings and reading detached version state updated by the existing allocator. |
+| Duplicate SRG declaration in 1.8.9; 1.12.2 FG3 replaces an explicitly declared SRG config | OUR BUILD LOGIC | Removed redundant `searge()` declarations. Forge's transformers still supply the same SRG mappings; stable MCP 22/39 names remain selected. |
+| 1.16.5 IDE resource copy enabled without an IDE plugin | OUR BUILD LOGIC | Applied the Gradle `idea` plugin to this isolated target; `genIntellijRuns` remains available. |
+| Legacy Forge MCP ZIP absent from NFRT's artifact manifest | UPSTREAM PLUGIN | Added the exact MCP ZIP to a build-only configuration and supplied it through the pinned plugin's public `addArtifactsToManifest` API. No warning strings are filtered. |
+| Unimined remap tasks access `Task.project` during execution | UPSTREAM PLUGIN | Retained; the pinned plugin owns these actions. |
+| GTNHGradle's `PropertiesConfiguration.GradleUtils.makePropertiesFrom` calls `Project.getProperties()` | UPSTREAM PLUGIN | Retained; requires an upstream change before Gradle 10. |
+| ForgeGradle's download/remapping tasks use task-time `Project` access and `Project.javaexec(Action)` | UPSTREAM PLUGIN | Retained; no supported per-warning suppression was found. |
+
+The Legacy Forge manifest warning was a missing upstream manifest entry, not a corrupt cache: [ModDevGradle 2.0.148](https://plugins.gradle.org/m2/net/neoforged/moddev-gradle/2.0.148/moddev-gradle-2.0.148-sources.jar) constructs the manifest without these MCP ZIPs, while [NeoFormRuntime 2.0.31](https://maven.neoforged.net/releases/net/neoforged/neoform-runtime/2.0.31/neoform-runtime-2.0.31-sources.jar) warns on a miss before using its Maven/cache fallback. The added coordinates are `de.oceanlabs.mcp:mcp_config:1.18.2-20220404.173914@zip` and `de.oceanlabs.mcp:mcp_config:1.20.1-20230612.114412@zip`. They are tooling inputs, not mod runtime dependencies. Keep them aligned with Forge userdev if changing the loader pins. NFRT's verbosity setting does not control this warning, so it is not used to silence it.
+
+The [JDK native-access option](https://docs.oracle.com/en/java/javase/25/docs/specs/man/java.html) permits Gradle's expected native-library loading rather than hiding all JVM warnings. Likewise, the javac change disables only the intentional options category; unchecked/deprecation diagnostics remain reportable. No `-nowarn` or `-Xlint:none` is configured.
+
+Remaining upstream deprecations keep their normal Gradle summaries. Suppressing those summaries by owner would also risk hiding future project warnings, so they stay visible. To expose individual warnings in the root **and all child wrappers**, run:
+
+```powershell
+./gradlew.bat buildAll --warning-mode all
+```
+
+This is a production build and follows the usual counter rules. For non-production diagnostics, use `testAll --warning-mode all` from the root, or `./gradlew.bat classes --warning-mode all "-Dorg.gradle.deprecation.trace=true"` from an adapter directory. Root launchers also forward `--warning-mode fail`; existing upstream deprecations intentionally cause that mode to fail. Daemon notices, `UP-TO-DATE`, `NO-SOURCE`, `SKIPPED`, mapping/artifact setup, cache reuse and `BUILD SUCCESSFUL` remain visible. No warnings from the audited diagnostic runs remain unclassified; an unfamiliar warning should be investigated rather than added to a filter.
 
 ## Repository layout
 

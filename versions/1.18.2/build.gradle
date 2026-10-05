@@ -13,3 +13,12 @@ legacyForge {
     mods { examplemod { sourceSet sourceSets.main } }
 }
 jar.finalizedBy 'reobfJar'
+
+// The Forge userdev workflow references this ZIP but omits it from NFRT's default manifest.
+def mcpConfig = configurations.create('legacyMcpConfig') {
+    canBeConsumed = false
+    canBeResolved = true
+    transitive = false
+}
+dependencies { legacyMcpConfig 'de.oceanlabs.mcp:mcp_config:1.18.2-20220404.173914@zip' }
+tasks.withType(net.neoforged.nfrtgradle.NeoFormRuntimeTask).configureEach { addArtifactsToManifest(mcpConfig) }

@@ -1,7 +1,10 @@
 plugins { id 'java-library' }
 group = 'com.glowingfederal.examplemod'
-java.toolchain.languageVersion = JavaLanguageVersion.of(21)
-sourceCompatibility = targetCompatibility = '1.8'
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(21)
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
+}
 repositories { mavenCentral() }
 dependencies { testImplementation 'junit:junit:4.13.2' }
 compileJava { options.release = 8; options.encoding = 'UTF-8' }

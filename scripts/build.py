@@ -45,12 +45,14 @@ def persist_version(original, number):
             os.unlink(name)
 
 
-def run(directory, tasks, release=None):
+def run(directory, tasks, release=None, warning_mode=None):
     wrapper = directory / ("gradlew.bat" if os.name == "nt" else "gradlew")
     command = [str(wrapper)] if os.name == "nt" else ["sh", str(wrapper)]
     command += tasks + ["--console=plain", "--max-workers=2"]
     if release:
         command += [f"-PreleaseModVersion={release[0]}", f"-PreleaseBuildNumber={release[1]}"]
+    if warning_mode:
+        command += ["--warning-mode", warning_mode]
     print(f"Building {directory.name}: {' '.join(tasks)}", flush=True)
     return subprocess.call(command, cwd=directory)
 
@@ -117,6 +119,8 @@ def main():
     parser.add_argument("--skip-common-tests", action="store_true",
                         help="For root Gradle launchers whose :common:test prerequisite already passed")
     parser.add_argument("--dry-run", action="store_true", help="Inspect the native client/server task graph without launching")
+    parser.add_argument("--warning-mode", choices=("all", "summary", "fail"),
+                        help="Forward Gradle diagnostics to every invoked wrapper without filtering output")
     args = parser.parse_args()
     if args.skip_common_tests and args.action not in ("all", "test"):
         parser.error("--skip-common-tests is only valid for all or test")
@@ -128,7 +132,7 @@ def main():
         tasks = ["runClient" if args.action == "client" else "runServer"]
         if args.dry_run:
             tasks.append("--dry-run")
-        return run(ROOT / "versions" / args.target, tasks)
+        return run(ROOT / "versions" / args.target, tasks, warning_mode=args.warning_mode)
     original, semantic, previous = read_version()
     if args.action == "plan":
         print(json.dumps({"mod_version": semantic, "build_number": previous + 1, "full_version": f"{semantic}.{previous + 1}"}))
@@ -146,14 +150,14 @@ def main():
         persist_version(original, args.number)
         return 0
     if args.action == "test":
-        status = 0 if args.skip_common_tests else run(ROOT, [":common:test"])
+        status = 0 if args.skip_common_tests else run(ROOT, [":common:test"], warning_mode=args.warning_mode)
         for mc in VERSIONS:
-            status = run(ROOT / "versions" / mc, ["test"]) or status
+            status = run(ROOT / "versions" / mc, ["test"], warning_mode=args.warning_mode) or status
         return status
     if args.action == "build":
         if not args.target:
             parser.error("build requires a target")
-        status = run(ROOT / "versions" / args.target, ["build"])
+        status = run(ROOT / "versions" / args.target, ["build"], warning_mode=args.warning_mode)
         if status == 0:
             _, semantic, number = read_version()
             verify(args.target, f"{semantic}.{number}")
@@ -166,12 +170,12 @@ def main():
     try:
         # Re-read while holding the same lock used by direct Gradle builds.
         original, semantic, previous = read_version()
-        status = 0 if args.skip_common_tests else run(ROOT, [":common:test"])
+        status = 0 if args.skip_common_tests else run(ROOT, [":common:test"], warning_mode=args.warning_mode)
         if status:
             return status
         failures = []
         for mc in VERSIONS:
-            result = run(ROOT / "versions" / mc, ["build"], (semantic, previous + 1))
+            result = run(ROOT / "versions" / mc, ["build"], (semantic, previous + 1), warning_mode=args.warning_mode)
             if result:
                 failures.append(mc)
             else:

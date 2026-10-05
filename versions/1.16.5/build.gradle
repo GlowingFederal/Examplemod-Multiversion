@@ -3,6 +3,7 @@ buildscript {
     dependencies { classpath 'net.minecraftforge.gradle:ForgeGradle:6.0.54' }
 }
 apply plugin: 'java'
+apply plugin: 'idea'
 
 ext.repositoryRoot = file('../..')
 ext.minecraftTarget = '1.16.5'

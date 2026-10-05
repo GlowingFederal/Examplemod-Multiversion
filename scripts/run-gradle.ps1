@@ -1,6 +1,7 @@
 param(
     [Parameter(Mandatory=$true)][string]$ProjectDirectory,
     [Parameter(Mandatory=$true)][int]$JavaVersion,
+    [switch]$EnableNativeAccess,
     [Parameter(ValueFromRemainingArguments=$true)][string[]]$GradleArguments
 )
 $ErrorActionPreference = 'Stop'
@@ -23,7 +24,9 @@ $env:JAVA_HOME = $selected
 $env:PATH = "$selected\bin;$env:PATH"
 Push-Location -LiteralPath $ProjectDirectory
 try {
-    & "$selected\bin\java.exe" '-classpath' (Join-Path $ProjectDirectory 'gradle\wrapper\gradle-wrapper.jar') 'org.gradle.wrapper.GradleWrapperMain' @GradleArguments
+    $gradleJvmArguments = @()
+    if ($EnableNativeAccess) { $gradleJvmArguments += '--enable-native-access=ALL-UNNAMED' }
+    & "$selected\bin\java.exe" @gradleJvmArguments '-classpath' (Join-Path $ProjectDirectory 'gradle\wrapper\gradle-wrapper.jar') 'org.gradle.wrapper.GradleWrapperMain' @GradleArguments
     $result = $LASTEXITCODE
 } finally { Pop-Location }
 exit $result

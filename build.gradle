@@ -5,13 +5,15 @@ def targets = ['1.6.4', '1.7.10', '1.8.9', '1.12.2', '1.16.5', '1.18.2', '1.20.1
 def windows = System.getProperty('os.name').toLowerCase(Locale.ROOT).contains('windows')
 def python = providers.environmentVariable('PYTHON').orElse(windows ? 'python' : 'python3')
 def coordinator = file('scripts/build.py')
+def warningMode = gradle.startParameter.warningMode.toString().toLowerCase(Locale.ROOT)
+def nativeWarningOptions = warningMode in ['all', 'fail'] ? ['--warning-mode', warningMode] : []
 
 def launcher = { String name, String description, List<String> arguments ->
     tasks.register(name, Exec) {
         group = 'multiversion'
         it.description = description
         workingDir rootDir
-        commandLine([python.get(), coordinator.absolutePath] + arguments)
+        commandLine([python.get(), coordinator.absolutePath] + arguments + nativeWarningOptions)
     }
 }
 

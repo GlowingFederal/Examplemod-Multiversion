@@ -10,7 +10,8 @@ java.toolchain.languageVersion = JavaLanguageVersion.of(21)
 tasks.withType(JavaCompile).configureEach { options.release = 8 }
 unimined.minecraft {
     version '1.12.2'
-    mappings { searge(); mcp('stable', '39-1.12') }
+    // Forge's FG3 userdev supplies its exact SRG config; retain the stable MCP name layer.
+    mappings { mcp('stable', '39-1.12') }
     runs {
         config('client') { javaVersion = JavaVersion.VERSION_1_8 }
         config('server') { javaVersion = JavaVersion.VERSION_1_8 }
