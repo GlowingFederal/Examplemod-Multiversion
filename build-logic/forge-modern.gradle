@@ -1,0 +1,12 @@
+apply plugin: 'net.minecraftforge.gradle'
+java.toolchain.languageVersion = JavaLanguageVersion.of(javaTarget)
+minecraft {
+    mappings channel: 'official', version: minecraftTarget
+    copyIdeResources = true
+    runs {
+        client { workingDirectory project.file('run'); mods { examplemod { source sourceSets.main } } }
+        server { workingDirectory project.file('run'); args '--nogui'; mods { examplemod { source sourceSets.main } } }
+    }
+}
+dependencies { minecraft "net.minecraftforge:forge:${loaderVersion}" }
+jar.finalizedBy 'reobfJar'

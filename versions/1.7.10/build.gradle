@@ -1,0 +1,10 @@
+plugins { id 'com.gtnewhorizons.gtnhconvention' }
+ext.repositoryRoot = file('../..')
+ext.minecraftTarget = '1.7.10'
+ext.loaderTarget = 'forge'
+ext.loaderVersion = '1.7.10-10.13.4.1614-1.7.10'
+ext.javaTarget = 8
+apply from: '../../build-logic/version.gradle'
+apply from: '../../build-logic/shared.gradle'
+// Jabel compiler settings are owned by GTNH; shared sources still obey Java 8 APIs.
+jar.finalizedBy 'reobfJar'

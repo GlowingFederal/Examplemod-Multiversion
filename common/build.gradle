@@ -1,0 +1,8 @@
+plugins { id 'java-library' }
+group = 'com.glowingfederal.examplemod'
+sourceCompatibility = targetCompatibility = '1.8'
+repositories { mavenCentral() }
+dependencies { testImplementation 'junit:junit:4.13.2' }
+compileJava { options.release = 8; options.encoding = 'UTF-8' }
+compileTestJava { options.release = 8; options.encoding = 'UTF-8' }
+// No Minecraft or loader dependencies belong in this project.

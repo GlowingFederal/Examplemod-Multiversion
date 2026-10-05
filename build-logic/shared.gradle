@@ -1,0 +1,53 @@
+group = 'com.glowingfederal.examplemod'
+sourceSets.main.java.srcDir new File(repositoryRoot, 'common/src/main/java')
+sourceSets.main.resources.srcDir new File(repositoryRoot, 'common/src/main/resources')
+sourceSets.test.java.srcDir new File(repositoryRoot, 'common/src/test/java')
+repositories { mavenCentral() }
+def testingConfiguration = configurations.findByName('testImplementation') != null ? 'testImplementation' : 'testCompile'
+dependencies.add(testingConfiguration, 'junit:junit:4.13.2')
+if (project.minecraftTarget != '1.7.10') {
+    sourceCompatibility = targetCompatibility = project.javaTarget.toString()
+}
+tasks.withType(JavaCompile) { options.encoding = 'UTF-8' }
+
+def generatedJava = file("${buildDir}/generated/examplemod/java")
+sourceSets.main.java.srcDir generatedJava
+task generateVersion {
+    inputs.property('fullVersion', { project.fullVersion })
+    outputs.dir generatedJava
+    doLast {
+        def destination = new File(generatedJava, 'com/glowingfederal/examplemod/BuildVersion.java')
+        destination.parentFile.mkdirs()
+        destination.text = """package com.glowingfederal.examplemod;
+public final class BuildVersion {
+    public static final String VERSION = "${project.fullVersion}";
+    private BuildVersion() {}
+}
+"""
+    }
+}
+compileJava.dependsOn generateVersion
+processResources {
+    inputs.property('fullVersion', { project.fullVersion })
+    filesMatching(['mcmod.info', 'META-INF/mods.toml', 'META-INF/neoforge.mods.toml']) {
+        expand(fullVersion: project.fullVersion, minecraftTarget: project.minecraftTarget)
+    }
+    // One source of language text; output formats and key names belong to the adapter.
+    doLast {
+        def strings = new Properties()
+        new File(repositoryRoot, 'common/assets/en_us.properties').withReader('UTF-8') { strings.load(it) }
+        def modern = project.minecraftTarget.tokenize('.')[1].toInteger() >= 13
+        def names = modern ? ['block.examplemod.example_block', 'item.examplemod.example_item'] :
+                ['tile.example_block.name', 'item.example_item.name']
+        def language = new File(destinationDir, "assets/examplemod/lang/${modern ? 'en_us.json' : (project.minecraftTarget == '1.12.2' ? 'en_us.lang' : 'en_US.lang')}")
+        language.parentFile.mkdirs()
+        def translated = [(names[0]): strings.getProperty('block'), (names[1]): strings.getProperty('item')]
+        language.setText(modern ? groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson(translated)) :
+                translated.collect { k, v -> "${k}=${v}" }.join('\n') + '\n', 'UTF-8')
+    }
+}
+jar {
+    manifest { attributes 'Implementation-Title': 'ExampleMod', 'Implementation-Version': { project.fullVersion } }
+    if (hasProperty("preserveFileTimestamps")) preserveFileTimestamps = false
+    if (hasProperty("reproducibleFileOrder")) reproducibleFileOrder = true
+}

@@ -1,0 +1,10 @@
+{
+  "minecraft": "1.8.9",
+  "loader": "forge",
+  "loader_version": "1.8.9-11.15.1.2318-1.8.9",
+  "plugin_version": "1.4.1",
+  "gradle": "8.13",
+  "build_java": 21,
+  "target_java": 8,
+  "tooling": "Unimined"
+}

@@ -1,0 +1,14 @@
+buildscript {
+    repositories { mavenCentral(); maven { url = 'https://maven.minecraftforge.net/' } }
+    dependencies { classpath 'net.minecraftforge.gradle:ForgeGradle:6.0.54' }
+}
+apply plugin: 'java'
+
+ext.repositoryRoot = file('../..')
+ext.minecraftTarget = '1.16.5'
+ext.loaderTarget = 'forge'
+ext.loaderVersion = '1.16.5-36.2.42'
+ext.javaTarget = 8
+apply from: '../../build-logic/version.gradle'
+apply from: '../../build-logic/shared.gradle'
+apply from: '../../build-logic/forge-modern.gradle'

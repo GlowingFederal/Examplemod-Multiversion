@@ -1,0 +1,12 @@
+{
+  "minecraft": "1.7.10",
+  "loader": "forge",
+  "loader_version": "1.7.10-10.13.4.1614-1.7.10",
+  "plugin_version": "2.0.34",
+  "gradle": "9.7.1",
+  "build_java": 25,
+  "target_java": 8,
+  "tooling": "GTNHGradle / RetroFuturaGradle 2.0.6",
+  "source_java": 17,
+  "modern_java_mode": "jabel"
+}

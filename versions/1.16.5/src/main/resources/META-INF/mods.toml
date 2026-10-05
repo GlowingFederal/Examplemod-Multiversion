@@ -1,0 +1,20 @@
+modLoader="javafml"
+loaderVersion="[36,)"
+license="MIT"
+[[mods]]
+modId="examplemod"
+version="${fullVersion}"
+displayName="ExampleMod"
+description="Portable domain logic with a Minecraft-specific adapter."
+[[dependencies.examplemod]]
+modId="forge"
+mandatory=true
+versionRange="[36.2.42,)"
+ordering="NONE"
+side="BOTH"
+[[dependencies.examplemod]]
+modId="minecraft"
+mandatory=true
+versionRange="[1.16.5]"
+ordering="NONE"
+side="BOTH"

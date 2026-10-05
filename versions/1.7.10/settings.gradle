@@ -1,0 +1,9 @@
+pluginManagement {
+    repositories {
+        maven { url = 'https://nexus.gtnewhorizons.com/repository/public/' }
+        gradlePluginPortal()
+        mavenCentral()
+    }
+}
+plugins { id 'com.gtnewhorizons.gtnhsettingsconvention' version '2.0.34' }
+rootProject.name = 'ExampleMod-1.7.10'

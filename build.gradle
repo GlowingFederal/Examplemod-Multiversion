@@ -1,0 +1,2 @@
+// The root configures portable code only. Every Minecraft target is a build island.
+plugins { id 'base' }

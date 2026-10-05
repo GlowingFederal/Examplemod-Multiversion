@@ -1,0 +1,17 @@
+plugins { id 'java'; id 'xyz.wagyourtail.unimined' version '1.4.1' }
+ext.repositoryRoot = file('../..')
+ext.minecraftTarget = '1.12.2'
+ext.loaderTarget = 'forge'
+ext.loaderVersion = '1.12.2-14.23.5.2864'
+ext.javaTarget = 8
+apply from: '../../build-logic/version.gradle'
+apply from: '../../build-logic/shared.gradle'
+java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+tasks.withType(JavaCompile).configureEach { options.release = 8 }
+unimined.minecraft {
+    version '1.12.2'
+    mappings { searge(); mcp('stable', '39-1.12') }
+    minecraftForge { loader '14.23.5.2864' }
+    
+}
+jar.finalizedBy 'remapJar'

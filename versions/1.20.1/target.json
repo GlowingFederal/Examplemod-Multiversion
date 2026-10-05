@@ -1,0 +1,10 @@
+{
+  "minecraft": "1.20.1",
+  "loader": "forge",
+  "loader_version": "1.20.1-47.4.10",
+  "plugin_version": "2.0.148",
+  "gradle": "8.13",
+  "build_java": 21,
+  "target_java": 17,
+  "tooling": "ModDevGradle Legacy Forge"
+}

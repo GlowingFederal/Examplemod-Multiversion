@@ -1,0 +1,16 @@
+plugins { id 'java-library'; id 'net.neoforged.moddev' version '2.0.148' }
+
+ext.repositoryRoot = file('../..')
+ext.minecraftTarget = '1.21.11'
+ext.loaderTarget = 'neoforge'
+ext.loaderVersion = '21.11.45'
+ext.javaTarget = 21
+apply from: '../../build-logic/version.gradle'
+apply from: '../../build-logic/shared.gradle'
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+neoForge {
+    version = loaderVersion
+    runs { client { client() }; server { server(); programArgument '--nogui' } }
+    mods { examplemod { sourceSet sourceSets.main } }
+}

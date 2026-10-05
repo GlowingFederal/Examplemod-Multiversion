@@ -1,0 +1,12 @@
+[
+  {
+    "modid": "examplemod",
+    "name": "ExampleMod",
+    "description": "Portable domain logic with a Minecraft-specific adapter.",
+    "version": "${fullVersion}",
+    "mcversion": "1.7.10",
+    "authorList": [
+      "GlowingFederal"
+    ]
+  }
+]

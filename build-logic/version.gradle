@@ -1,0 +1,105 @@
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
+import java.nio.file.AtomicMoveNotSupportedException
+
+// Shared by old and new Gradle. No configuration-cache support: this owns a transaction.
+def versionFile = new File(project.ext.repositoryRoot, 'version.properties')
+if (!versionFile.exists()) {
+    versionFile.text = 'mod_version=1.0.0\nbuild_number=0\n'
+}
+def originalBytes = Files.readAllBytes(versionFile.toPath())
+def versionText = new String(originalBytes, 'UTF-8')
+def values = new Properties()
+values.load(new StringReader(versionText))
+def semantic = values.getProperty('mod_version')
+def numberText = values.getProperty('build_number')
+if (semantic == null || !(semantic ==~ /[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?/)) {
+    throw new GradleException('version.properties: mod_version must be a semantic version, e.g. 1.0.0')
+}
+if (numberText == null || !(numberText ==~ /[0-9]+/) || numberText.toBigInteger() > Long.MAX_VALUE - 1) {
+    throw new GradleException('version.properties: build_number must be a non-negative integer below Long.MAX_VALUE')
+}
+if ((versionText =~ /(?m)^\s*build_number\s*[:=]/).count != 1) {
+    throw new GradleException('version.properties must contain exactly one build_number assignment')
+}
+def oldNumber = numberText.toLong()
+ext.modVersion = semantic
+ext.buildNumber = oldNumber
+ext.fullVersion = "${semantic}.${oldNumber}"
+ext.displayVersion = fullVersion
+version = fullVersion
+
+def lockDirectory = new File(project.ext.repositoryRoot, '.build-number.lock')
+def ownsLock = false
+def production = false
+def coordinated = project.hasProperty('releaseBuildNumber')
+if (coordinated != project.hasProperty('releaseModVersion')) {
+    throw new GradleException('releaseBuildNumber and releaseModVersion must be supplied together')
+}
+def applyNumber = { long n ->
+    project.ext.buildNumber = n
+    project.ext.fullVersion = "${semantic}.${n}"
+    project.ext.displayVersion = project.ext.fullVersion
+    project.version = project.ext.fullVersion
+    def name = "examplemod-${project.version}+mc${project.minecraftTarget}-${project.loaderTarget}.jar"
+    def separate = project.tasks.findByName('remapJar') ?: (project.minecraftTarget in ['1.7.10', '1.18.2', '1.20.1'] ? project.tasks.findByName('reobfJar') : null)
+    if (project.tasks.jar.hasProperty('archiveFileName')) {
+        project.tasks.jar.archiveFileName.set(separate == null ? name : name.replace('.jar', '-dev.jar'))
+        if (separate != null) separate.archiveFileName.set(name)
+    } else {
+        project.tasks.jar.archiveName = name
+    }
+}
+applyNumber(oldNumber)
+
+gradle.taskGraph.whenReady { graph ->
+    // Only explicitly requested packaging consumes a number. runClient may depend on jar.
+    production = gradle.startParameter.taskNames.any { requested ->
+        requested.tokenize(':').last() in ['build', 'jar', 'assemble', 'reobf', 'reobfJar', 'remapJar', 'release']
+    }
+    if (coordinated) {
+        def requestedNumber = project.property('releaseBuildNumber').toString()
+        if (!(requestedNumber ==~ /[0-9]+/) || requestedNumber.toBigInteger() > Long.MAX_VALUE - 1 ||
+                project.property('releaseModVersion').toString() != semantic || requestedNumber.toLong() != oldNumber + 1) {
+            throw new GradleException('Coordinated release must use root mod_version and build_number + 1')
+        }
+        applyNumber(requestedNumber.toLong())
+    } else if (production) {
+        try {
+            Files.createDirectory(lockDirectory.toPath())
+            ownsLock = true
+        } catch (java.nio.file.FileAlreadyExistsException e) {
+            throw new GradleException('Another production build owns .build-number.lock; do not run concurrent local releases', e)
+        }
+        if (!Arrays.equals(originalBytes, Files.readAllBytes(versionFile.toPath()))) {
+            throw new GradleException('version.properties changed during configuration; retry this build')
+        }
+        applyNumber(oldNumber + 1)
+    }
+}
+gradle.buildFinished { result ->
+    try {
+        if (ownsLock && production && result.failure == null) {
+            def output = new File(project.buildDir, "libs/examplemod-${project.fullVersion}+mc${project.minecraftTarget}-${project.loaderTarget}.jar")
+            if (!output.isFile()) {
+                throw new GradleException("Successful packaging did not produce ${output}")
+            }
+            if (!Arrays.equals(originalBytes, Files.readAllBytes(versionFile.toPath()))) {
+                throw new GradleException('version.properties changed while packaging; refusing to overwrite it')
+            }
+            // Preserve comments, other keys, separators, and line endings.
+            def updated = versionText.replaceFirst(/(?m)^(\s*build_number\s*[:=]\s*)[0-9]+/, '$1' + project.buildNumber)
+            def temporary = Files.createTempFile(versionFile.parentFile.toPath(), '.version-', '.tmp')
+            try {
+                Files.write(temporary, updated.getBytes('UTF-8'))
+                try {
+                    Files.move(temporary, versionFile.toPath(), StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING)
+                } catch (AtomicMoveNotSupportedException ignored) {
+                    Files.move(temporary, versionFile.toPath(), StandardCopyOption.REPLACE_EXISTING)
+                }
+            } finally { Files.deleteIfExists(temporary) }
+        }
+    } finally {
+        if (ownsLock) Files.deleteIfExists(lockDirectory.toPath())
+    }
+}

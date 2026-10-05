@@ -1,0 +1,39 @@
+# Ignore IntelliJ IDEA project files
+.idea/
+*.iml
+
+# Ignore Gradle and build output directories
+/.gradle/
+/build/
+/out/
+
+# Ignore Eclipse project files (if applicable)
+.classpath
+.project
+.settings/
+
+# Ignore logs and temp files
+*.log
+*.tmp
+*.swp
+*.swo
+
+# Ignore OS-specific files
+.DS_Store
+Thumbs.db
+
+# Ignore compiled Java class files
+/bin/
+/*.class
+
+# Ignore dependency caches and generated files
+.gradle/
+/mcp/
+/run/
+/eclipse/
+/libs/
+/jars/
+
+# Ignore personal or environment-specific files
+.env
+*.credentials
