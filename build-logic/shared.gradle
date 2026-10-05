@@ -47,7 +47,9 @@ processResources {
     }
 }
 jar {
-    manifest { attributes 'Implementation-Title': 'ExampleMod', 'Implementation-Version': { project.fullVersion } }
+    manifest { attributes 'Implementation-Title': 'ExampleMod', 'Implementation-Version': project.fullVersion }
     if (hasProperty("preserveFileTimestamps")) preserveFileTimestamps = false
     if (hasProperty("reproducibleFileOrder")) reproducibleFileOrder = true
 }
+
+jar.doFirst { manifest.attributes('Implementation-Version': project.fullVersion) }
