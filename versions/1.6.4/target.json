@@ -5,6 +5,10 @@
   "plugin_version": "1.4.1",
   "gradle": "8.13",
   "build_java": 21,
-  "target_java": 8,
+  "target_java": 7,
+  "source_java": 7,
+  "compiler_java": 17,
+  "runtime_java": 8,
+  "classfile_major": 51,
   "tooling": "Unimined"
 }

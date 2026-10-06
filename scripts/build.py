@@ -184,7 +184,10 @@ def verify(mc, full_version, directory=None):
                 if "${" in resource:
                     raise RuntimeError(f"{jar.name} contains unexpanded resource tokens: {path}")
                 json.loads(resource)
-            if path.endswith(".class") and (path in required or any(path.startswith(root) for root in config["class_roots"])):
+            if mc == "1.6.4" and (path.endswith(".jar") or
+                    (path.endswith(".class") and not any(path.startswith(root) for root in config["class_roots"]))):
+                raise RuntimeError(f"{jar.name} contains an unexpected bundled dependency: {path}")
+            if path.endswith(".class"):
                 major, symbols = class_info(archive.read(path))
                 expected = config["target_java"] + 44
                 if major > expected or (path in required_classes and major != expected):
@@ -200,6 +203,9 @@ def verify(mc, full_version, directory=None):
             check_json(archive.read(check["path"]).decode("utf-8"), check["values"], check["path"])
         check_metadata(archive.read(config["metadata"]["path"]).decode("utf-8"), config["metadata"], jar.name)
         manifest = archive.read("META-INF/MANIFEST.MF").decode("utf-8").replace("\r\n", "\n").replace("\n ", "")
+        if mc == "1.6.4" and any(line.startswith(("Class-Path:", "FMLCorePlugin:", "Premain-Class:", "Agent-Class:"))
+                                   for line in manifest.splitlines()):
+            raise RuntimeError(f"{jar.name} declares an unexpected launch/bootstrap dependency")
         for field, value in (("Implementation-Version", full_version), ("Implementation-Title", config["display_name"])):
             if f"{field}: {value}" not in manifest.splitlines():
                 raise RuntimeError(f"{jar.name} has inconsistent manifest {field}")

@@ -6,32 +6,34 @@ A standalone Forge/NeoForge example maintained in one repository on `main`. It a
 
 All eight targets compile, run the five shared JUnit vectors, and produce inspected production JARs. The root common project passes the same tests. Archive checks cover metadata, generated versions, bytecode levels and resource references. The GitHub workflows pass local actionlint checks; they have not yet run on GitHub. In-game rendering, commands, client launches and dedicated-server behavior still need runtime testing.
 
-| Minecraft | Loader pin | Build tooling pin | Wrapper | Build JDK | Source / runtime Java | Build status |
-|---|---|---|---|---:|---|---|
-| 1.6.4 | Forge 9.11.1.1345 | Unimined 1.4.1 | 8.13 | 21 | 8 / 8 | Build verified |
-| 1.7.10 | Forge 10.13.4.1614 | GTNHGradle 2.0.34, RetroFuturaGradle 2.0.6 | 9.7.1 | 25 | 17 with Jabel / 8 | Build verified |
-| 1.8.9 | Forge 11.15.1.2318 | Unimined 1.4.1 | 8.13 | 21 | 8 / 8 | Build verified |
-| 1.12.2 | Forge 14.23.5.2864 | Unimined 1.4.1 | 8.13 | 21 | 8 / 8 | Build verified |
-| 1.16.5 | Forge 36.2.42 | ForgeGradle 6.0.54 | 8.13 | 21 | 8 / 8 | Build verified |
-| 1.18.2 | Forge 40.3.12 | ModDevGradle Legacy Forge 2.0.148 | 8.13 | 21 | 17 / 17 | Build verified |
-| 1.20.1 | Forge 47.4.10 | ModDevGradle Legacy Forge 2.0.148 | 8.13 | 21 | 17 / 17 | Build verified |
-| 1.21.11 | NeoForge 21.11.45 | ModDevGradle 2.0.148 | 9.2.1 | 21 | 21 / 21 | Build verified |
+| Minecraft | Loader pin | Build tooling pin | Wrapper | Build JVM | Source Java | Bytecode (major) | User Java |
+|---|---|---|---|---:|---|---|---:|
+| 1.6.4 | Forge 9.11.1.1345 | Unimined 1.4.1 | 8.13 | 21 | 7 | 7 (51) | 8 |
+| 1.7.10 | Forge 10.13.4.1614 | GTNHGradle 2.0.34, RetroFuturaGradle 2.0.6 | 9.7.1 | 25 | 17 with Jabel | 8 (52) | 8 |
+| 1.8.9 | Forge 11.15.1.2318 | Unimined 1.4.1 | 8.13 | 21 | 8 | 8 (52) | 8 |
+| 1.12.2 | Forge 14.23.5.2864 | Unimined 1.4.1 | 8.13 | 21 | 8 | 8 (52) | 8 |
+| 1.16.5 | Forge 36.2.42 | ForgeGradle 6.0.54 | 8.13 | 21 | 8 | 8 (52) | 8 |
+| 1.18.2 | Forge 40.3.12 | ModDevGradle Legacy Forge 2.0.148 | 8.13 | 21 | 17 | 17 (61) | 17 |
+| 1.20.1 | Forge 47.4.10 | ModDevGradle Legacy Forge 2.0.148 | 8.13 | 21 | 17 | 17 (61) | 17 |
+| 1.21.11 | NeoForge 21.11.45 | ModDevGradle 2.0.148 | 9.2.1 | 21 | 21 | 21 (65) | 21 |
 
 Tooling was selected per generation, considering current maintained replacements and historical official builds:
 
 - **1.6.4:** [Unimined's upstream Forge example](https://github.com/unimined/Unimined/tree/lts/1.4/testing/1.6.4-Forge) supports the Java 8-compatible Forge 1345 release. Its FG2-compatible transformer uses modern downloads/remapping without requiring an abandoned ForgeGradle 1.0 process or a private patched toolchain. The original FG1 userdev exists for 964, but not 1345. The older Forge version and dead HTTP endpoints make that path a poorer baseline.
-- **1.7.10:** [GTNH ExampleMod](https://github.com/GTNewHorizons/ExampleMod1.7.10) is the reference. GTNHGradle supplies RetroFuturaGradle, maintained repositories, IDE support, generic injection and Jabel. Git-derived versioning, automatic buildscript updates and unused publishing/mixin integrations are disabled so the root version file remains authoritative. The pinned upstream plugin uses JDK 25 to run; **Jabel compiles Java 17 syntax against Java 8 APIs and bytecode**. Native modern bytecode is not enabled. JVM Downgrader is unnecessary for this domain function; reconsider it if an adapter needs newer library APIs, auditing bundled stubs and licensing first. Shared code stays within Java 8 syntax/API because the other adapters compile it directly.
+- **1.7.10:** [GTNH ExampleMod](https://github.com/GTNewHorizons/ExampleMod1.7.10) is the reference. GTNHGradle supplies RetroFuturaGradle, maintained repositories, IDE support, generic injection and Jabel. Git-derived versioning, automatic buildscript updates and unused publishing/mixin integrations are disabled so the root version file remains authoritative. The pinned upstream plugin uses JDK 25 to run; **Jabel compiles Java 17 syntax against Java 8 APIs and bytecode**. Native modern bytecode is not enabled. JVM Downgrader is unnecessary for this domain function; reconsider it if an adapter needs newer library APIs, auditing bundled stubs and licensing first. Shared production code stays within Java 7 syntax/API because the other adapters compile it directly.
 - **1.8.9:** Unimined's FG2-compatible transformer supports this exact Forge generation and stable MCP 22 mappings. It replaces FG2.1's obsolete build environment while preserving a normal Forge output. GTNH's 1.7.10-specific conventions are not applied to this target.
 - **1.12.2:** Unimined uses its FG3-compatible transformer for the maintained Forge 2864 release, with the SRG config supplied by Forge userdev and stable MCP 39 names. The anatawa12 FG2.3 fork was evaluated as a historical alternative; Unimined avoids the old Gradle/dependency setup while keeping Java 8 output. [The upstream Forge integration example](https://github.com/unimined/Unimined/tree/lts/1.4/testing/1.12.2-Forge-Fabric-Liteloader) also supports other loaders; this repository enables Forge only.
 - **1.16.5:** Current official ForgeGradle remains appropriate. [ModDevGradle Legacy Forge](https://github.com/neoforged/ModDevGradle/blob/main/LEGACY.md) starts at Minecraft 1.17, so it does not support this target. ForgeGradle's JDK 8 toolchain compiles the adapter; JDK 21 runs Gradle.
 - **1.18.2 and 1.20.1:** ModDevGradle's maintained Legacy Forge plugin supports these Forge targets, official Mojang mappings and production SRG reobfuscation. It shares conventions with the NeoForge target and avoids keeping another ForgeGradle-specific configuration where unnecessary. The runtime loader remains Forge.
 - **1.21.11:** [The current NeoForge MDK](https://github.com/NeoForgeMDKs/MDK-1.21.11-ModDevGradle) provides the selected loader, Java 21, wrapper and ModDevGradle generation. NeoForge needs no mod reobfuscation pass.
 
+The 1.6.4 `verifyForge164Bytecode` task reads every class header in the final `remapJar` output and rejects versions above 51, invalid magic and preview bytecode. It runs after remapping and through `check`/`build`, including CI. `verifyDevelopmentClasses` also checks main output before development launches. Preserve both checks and `--release 7` when deriving a project; shared production sources must remain Java 7 compatible.
+
 Each `versions/<minecraft>/target.json` records its selected toolchain. Dependencies and wrapper distribution checksums are pinned. Builds may still resolve loader-owned transitive dependencies according to the upstream loader metadata.
 
-Minecraft 1.6.4 requires Java 8 and a Java 8-capable ASM library (the development launcher selects `asm-all:5.0.3`). Stock Forge 1.6.4's ASM 4.1 rejects Java 8 mod classes even on a Java 8 JVM. An installed launcher/server must likewise replace its ASM 4.1 library with ASM 5.0.3; ASM is a launch library, not an additional mod. Neither ASM nor compiler annotations are bundled in the mod JAR.
+The build JVM is separate from the installed game runtime. Minecraft 1.6.4 builds run Gradle on JDK 21 and compile main sources with JDK 17 using `--release 7`: Java 7 syntax/APIs and classfile major **51**. This preserves stock Forge 9.11.1.1345 and its ASM 4.1 launch library; install the normal remapped mod JAR without modifying launch libraries. The pinned Forge/game runs use Java 8. Neither ASM nor compiler annotations are bundled. JDK 17 is used because it still supports Java 7 API targeting; JDK 21 does not. Test sources may use Java 8 and are excluded from the distributable. Stock Forge's client certificate check requires a Java 8 runtime that accepts the original Minecraft JAR's legacy signatures; newer Java 8 security policies can reject them before mod discovery. This is separate from mod bytecode compatibility.
 
-Java 8 targets provide `verifyDevelopmentClasses`, also required by native client/server runs, packaging and `check`. It inspects development class headers, including generated and auxiliary output; archive verification remains a separate check. For an isolated 1.6.4 dedicated instance, use its native `gradlew.bat runServer -PdevServerPort=25566`; this selects that port and `run/server-25566`, including separate config/world files, and accepts server console input.
+The Java 7 (1.6.4) and Java 8 targets provide `verifyDevelopmentClasses`, also required by native client/server runs, packaging and `check`. It inspects development class headers, including generated and auxiliary output; archive verification remains a separate check. For an isolated 1.6.4 dedicated instance, use its native `gradlew.bat runServer -PdevServerPort=25566`; this selects that port and `run/server-25566`, including separate config/world files, and accepts server console input.
 
 ### Build warning audit
 

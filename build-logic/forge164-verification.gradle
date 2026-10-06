@@ -1,0 +1,62 @@
+// Stock Forge 1.6.4 uses ASM 4.1, which accepts at most Java 7 (major 51).
+// Inspect headers directly, without loading classes or introducing an ASM dependency.
+def maximumMajor = 51
+def inspectHeader = { InputStream input, String name ->
+    def stream = new DataInputStream(input)
+    if (stream.readInt() != (0xCAFEBABE as int)) {
+        throw new GradleException("Invalid classfile magic: ${name}")
+    }
+    def minor = stream.readUnsignedShort()
+    def major = stream.readUnsignedShort()
+    if (major > maximumMajor || minor == 65535) {
+        throw new GradleException("1.6.4 artifact contains unsupported bytecode: ${name}\n" +
+                "Detected: classfile ${major}.${minor} / Java ${major - 44}\n" +
+                "Allowed maximum: ${maximumMajor} / Java 7")
+    }
+    major
+}
+
+def mainClasses = sourceSets.main.output.classesDirs.asFileTree.matching { include '**/*.class' }
+def developmentCheck = tasks.register('verifyDevelopmentClasses') {
+    group = 'verification'
+    description = 'Verify Forge 1.6.4 main classes against stock ASM 4.1.'
+    dependsOn tasks.named('classes')
+    inputs.files mainClasses
+    doLast {
+        if (mainClasses.empty) throw new GradleException('No 1.6.4 main classes were produced')
+        mainClasses.each { file -> file.withInputStream { inspectHeader(it, file.path) } }
+    }
+}
+tasks.matching { it.name in ['runClient', 'runServer', 'preRunClient', 'preRunServer', 'jar'] }.configureEach {
+    dependsOn developmentCheck
+}
+
+def productionJar = tasks.named('remapJar')
+def artifactCheck = tasks.register('verifyForge164Bytecode') {
+    group = 'verification'
+    description = 'Inspect every class in the final remapped Forge 1.6.4 distributable.'
+    dependsOn productionJar
+    inputs.file productionJar.flatMap { it.archiveFile }
+    doLast {
+        def file = productionJar.get().archiveFile.get().asFile
+        def archive = new java.util.jar.JarFile(file)
+        int maximumDetected = 0
+        int count = 0
+        try {
+            archive.entries().each { entry ->
+                if (entry.name.endsWith('.class')) {
+                    archive.getInputStream(entry).withCloseable { input ->
+                        maximumDetected = Math.max(maximumDetected, inspectHeader(input, entry.name))
+                    }
+                    count++
+                }
+            }
+            if (count == 0) throw new GradleException("No classes in ${file.name}")
+        } finally { archive.close() }
+        logger.lifecycle("1.6.4 bytecode verification passed: ${file.name} (${count} classes)\n" +
+                "Maximum detected classfile version: ${maximumDetected} (Java ${maximumDetected - 44})\n" +
+                "Allowed maximum: ${maximumMajor} (Java 7)")
+    }
+}
+productionJar.configure { finalizedBy artifactCheck }
+tasks.named('check') { dependsOn artifactCheck }

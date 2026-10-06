@@ -35,3 +35,10 @@
 - Keep Unimined's JetBrains compiler annotations off the Minecraft runtime classpath on 1.6.4, 1.8.9 and 1.12.2.
 - Isolate 1.6.4 remapping and disable synthesized parameter metadata incompatible with FML's old visitors. Launch an unchanged copy of its Minecraft JAR under a safe filename to avoid FML's plus-to-space URL-decoding error; retain upstream certificate and binary-patch diagnostics.
 - Enable native 1.6.4 server console input and optional isolated development port/config/world directories. Document the ASM launch-library requirement for installed Java 8 environments without introducing mod-specific template logic.
+
+2026-10-05 20:04 — Restore stock Forge 1.6.4 bytecode compatibility
+
+- Compile 1.6.4 production sources with JDK 17 and `--release 7` to Java 7 APIs/bytecode (major 51), keeping the existing Gradle and game JVMs separate.
+- Remove the development ASM 5 override so both installed and development Forge retain stock ASM 4.1.
+- Verify every class header in the final remapped artifact through build/check and CI; inspect all archive classes and reject bundled dependencies or bootstrap metadata on 1.6.4.
+- Document the per-target source, bytecode and runtime requirements without downgrading other targets.

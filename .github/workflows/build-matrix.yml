@@ -27,7 +27,7 @@ jobs:
       matrix:
         include:
           - mc: 1.6.4
-            jdks: "8\n21"
+            jdks: "8\n17\n21"
           - mc: 1.7.10
             jdks: "8\n17\n25"
           - mc: 1.8.9

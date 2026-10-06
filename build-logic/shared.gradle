@@ -24,7 +24,7 @@ tasks.withType(JavaCompile).configureEach {
         options.release.set(javaCompiler.map { it.metadata.languageVersion.asInt() > 8 ? 8 : null })
     }
     if (minecraftVersion in ['1.6.4', '1.8.9', '1.12.2']) {
-        // Modern javac intentionally targets Java 8; retain every other warning category.
+        // Legacy source/bytecode levels are intentional; retain other warning categories.
         options.compilerArgs.add('-Xlint:-options')
     }
 }

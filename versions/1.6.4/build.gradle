@@ -3,10 +3,14 @@ ext.repositoryRoot = file('../..')
 ext.minecraftTarget = '1.6.4'
 ext.loaderTarget = 'forge'
 ext.loaderVersion = '1.6.4-9.11.1.1345'
-ext.javaTarget = 8
+ext.javaTarget = 7
 apply from: '../../build-logic/version.gradle'
 apply from: '../../build-logic/shared.gradle'
-java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+// JDK 17 still supplies the Java 7 API signature set for --release 7.
+// Gradle itself continues to run on JDK 21; game runs use Java 8.
+java.toolchain.languageVersion = JavaLanguageVersion.of(17)
+compileJava.options.release.set(7)
+compileTestJava.options.release.set(8)
 
 // Isolate the legacy remapper settings from Unimined's default global Minecraft cache.
 unimined.useGlobalCache = false
@@ -36,9 +40,7 @@ def runtimeCopies = [:]
 
 unimined.minecraft {
     version '1.6.4'
-    // ASM 4.1 rejects Java 8 classfiles before FML can discover the mod.
-    replaceLibraryVersion('org.ow2.asm', 'asm-all', '5.0.3')
-    
+    // Keep Forge's stock ASM 4.1. Distributed mod classes must be major 51 or lower.
     runs {
         all {
             def side = name == 'runClient' ? 'client' : 'server'
@@ -70,3 +72,4 @@ unimined.minecraft {
     }
 }
 jar.finalizedBy 'remapJar'
+apply from: '../../build-logic/forge164-verification.gradle'
