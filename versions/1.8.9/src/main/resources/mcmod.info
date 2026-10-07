@@ -7,6 +7,9 @@
     "mcversion": "1.8.9",
     "authorList": [
       "GlowingFederal"
-    ]
+    ],
+    "dependencies": ["Forge@[11.15.1.2318,)"],
+    "requiredMods": ["Forge@[11.15.1.2318,)"],
+    "useDependencyInformation": true
   }
 ]

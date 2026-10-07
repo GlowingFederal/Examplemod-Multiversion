@@ -1,7 +1,7 @@
 {
   "minecraft": "1.12.2",
   "loader": "forge",
-  "loader_version": "1.12.2-14.23.5.2864",
+  "loader_version": "1.12.2-14.23.5.2859",
   "plugin_version": "1.4.1",
   "gradle": "8.13",
   "build_java": 21,

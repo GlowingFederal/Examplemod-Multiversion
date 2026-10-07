@@ -251,6 +251,13 @@
             "parent": "item/generated",
             "textures.layer0": "{mod_id}:{item_textures}/example_item"
           }
+        },
+        {
+          "path": "pack.mcmeta",
+          "values": {
+            "pack.pack_format": 6,
+            "pack.description": "ExampleMod resources"
+          }
         }
       ],
       "remapping": {
@@ -268,7 +275,7 @@
         ]
       },
       "fml_range": "[36,)",
-      "loader_range": "[36.2.42,)",
+      "loader_range": "[36.2.34,)",
       "required_assets": [
         "assets/{mod_id}/blockstates/example_block.json",
         "assets/{mod_id}/models/block/example_block.json",
@@ -307,7 +314,7 @@
         ]
       },
       "fml_range": "[40,)",
-      "loader_range": "[40.3.12,)",
+      "loader_range": "[40.3.0,)",
       "required_assets": [
         "assets/{mod_id}/blockstates/example_block.json",
         "assets/{mod_id}/models/block/example_block.json",

@@ -9,7 +9,7 @@ description="Portable domain logic with a Minecraft-specific adapter."
 [[dependencies.examplemod]]
 modId="forge"
 mandatory=true
-versionRange="[40.3.12,)"
+versionRange="[40.3.0,)"
 ordering="NONE"
 side="BOTH"
 [[dependencies.examplemod]]

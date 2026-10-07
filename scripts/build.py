@@ -18,15 +18,15 @@ VERSIONS = ("1.6.4", "1.7.10", "1.8.9", "1.12.2", "1.16.5", "1.18.2", "1.20.1", 
 
 def read_version():
     if not VERSION_FILE.exists():
-        VERSION_FILE.write_text("mod_version=1.0.0\nbuild_number=0\n", encoding="utf-8")
+        VERSION_FILE.write_text("mod_version=1.0.0\nbuild_number=1\n", encoding="utf-8")
     original = VERSION_FILE.read_bytes()
     text = original.decode("utf-8")
     semantic = [v.strip() for v in re.findall(r"(?m)^[ \t]*mod_version[ \t]*[:=][ \t]*([^\r\n]*)", text)]
     number = [v.strip() for v in re.findall(r"(?m)^[ \t]*build_number[ \t]*[:=][ \t]*([^\r\n]*)", text)]
     if len(semantic) != 1 or not re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?", semantic[0]):
         raise ValueError("version.properties must contain one semantic mod_version (e.g. 1.0.0)")
-    if len(number) != 1 or not re.fullmatch(r"[0-9]+", number[0]) or int(number[0]) >= 2**63 - 1:
-        raise ValueError("version.properties must contain one non-negative build_number below Long.MAX_VALUE")
+    if len(number) != 1 or not re.fullmatch(r"[0-9]+", number[0]) or not 1 <= int(number[0]) < 2**63 - 1:
+        raise ValueError("version.properties must contain one positive next-production build_number below Long.MAX_VALUE")
     return original, semantic[0], int(number[0])
 
 
@@ -237,9 +237,9 @@ def main():
         if args.dry_run:
             tasks.append("--dry-run")
         return run(ROOT / "versions" / args.target, tasks, warning_mode=args.warning_mode)
-    original, semantic, previous = read_version()
+    original, semantic, number = read_version()
     if args.action == "plan":
-        print(json.dumps({"mod_version": semantic, "build_number": previous + 1, "full_version": f"{semantic}.{previous + 1}"}))
+        print(json.dumps({"mod_version": semantic, "build_number": number, "full_version": f"{semantic}.{number}"}))
         return 0
     if args.action == "verify":
         if not args.target or not args.full_version:
@@ -247,11 +247,11 @@ def main():
         verify(args.target, args.full_version, args.artifacts)
         return 0
     if args.action == "persist":
-        if args.number != previous + 1 or args.artifacts is None:
-            parser.error("persist requires --number equal to build_number + 1 and --artifacts containing all eight jars")
+        if args.number != number or args.artifacts is None:
+            parser.error("persist requires --number equal to build_number and --artifacts containing all eight jars")
         for mc in VERSIONS:
             verify(mc, f"{semantic}.{args.number}", args.artifacts)
-        persist_version(original, args.number)
+        persist_version(original, args.number + 1)
         return 0
     if args.action == "test":
         status = 0 if args.skip_common_tests else run(ROOT, [":common:test"], warning_mode=args.warning_mode)
@@ -264,7 +264,7 @@ def main():
         status = run(ROOT / "versions" / args.target, ["build"], warning_mode=args.warning_mode)
         if status == 0:
             _, semantic, number = read_version()
-            verify(args.target, f"{semantic}.{number}")
+            verify(args.target, f"{semantic}.{number - 1}")
         return status
     lock = ROOT / ".build-number.lock"
     try:
@@ -273,25 +273,25 @@ def main():
         raise RuntimeError("Another production build owns .build-number.lock")
     try:
         # Re-read while holding the same lock used by direct Gradle builds.
-        original, semantic, previous = read_version()
+        original, semantic, number = read_version()
         status = 0 if args.skip_common_tests else run(ROOT, [":common:test"], warning_mode=args.warning_mode)
         if status:
             return status
         failures = []
         for mc in VERSIONS:
-            result = run(ROOT / "versions" / mc, ["build"], (semantic, previous + 1), warning_mode=args.warning_mode)
+            result = run(ROOT / "versions" / mc, ["build"], (semantic, number), warning_mode=args.warning_mode)
             if result:
                 failures.append(mc)
             else:
                 try:
-                    verify(mc, f"{semantic}.{previous + 1}")
+                    verify(mc, f"{semantic}.{number}")
                 except (RuntimeError, zipfile.BadZipFile) as error:
                     print(error, file=sys.stderr)
                     failures.append(mc)
         if failures:
             print("Production build failed: " + ", ".join(failures) + "; build_number preserved", file=sys.stderr)
             return 1
-        persist_version(original, previous + 1)
+        persist_version(original, number + 1)
         return 0
     finally:
         lock.rmdir()

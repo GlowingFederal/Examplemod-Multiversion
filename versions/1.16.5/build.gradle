@@ -8,7 +8,7 @@ apply plugin: 'idea'
 ext.repositoryRoot = file('../..')
 ext.minecraftTarget = '1.16.5'
 ext.loaderTarget = 'forge'
-ext.loaderVersion = '1.16.5-36.2.42'
+ext.loaderVersion = '1.16.5-36.2.34'
 ext.javaTarget = 8
 apply from: '../../build-logic/version.gradle'
 apply from: '../../build-logic/shared.gradle'

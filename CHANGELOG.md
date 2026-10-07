@@ -42,3 +42,21 @@
 - Remove the development ASM 5 override so both installed and development Forge retain stock ASM 4.1.
 - Verify every class header in the final remapped artifact through build/check and CI; inspect all archive classes and reject bundled dependencies or bootstrap metadata on 1.6.4.
 - Document the per-target source, bytecode and runtime requirements without downgrading other targets.
+
+2026-10-06 21:59 — Correct Forge 1.16.5 resource-pack packaging
+
+- Require and parse root-level Minecraft 1.16.5 pack metadata during production archive verification, checking format 6 and the resource description. Document that utilities must retain this target metadata when removing demonstration assets.
+
+2026-10-07 00:28 — Restore Recommended Forge compatibility (1.0.1.1)
+
+- Compile Minecraft 1.12.2, 1.16.5 and 1.18.2 against Recommended Forge 14.23.5.2859, 36.2.34 and 40.3.0; align loader metadata, target records and existing archive expectations with those compatibility floors. Preserve the existing Recommended Forge pins for other Forge targets and the stable NeoForge 21.11.45 baseline.
+- Correct legacy mcmod.info version-reference syntax and required Forge dependencies, preserving current gameplay and optional-client behavior.
+- Use the string dependency-information flag required by FML 1.6.4; keep the Boolean representation on later targets.
+- Use the lowercase forge dependency ID introduced by FML 1.12.2; retain the native Forge ID on earlier targets.
+- Bump the semantic patch version and start the corrected release at 1.0.1.1.
+
+2026-10-07 01:29 — Separate template revisions and add manual build pruning
+
+- Restore the example mod metadata to version 1.0.0 and initial build 1. Treat the stored build number as the next production number, advancing only after successful packaging; align direct builds, all-target coordination and CI release persistence.
+- Add template.properties with internal templateRevision=1, independent of filenames and all public mod metadata. Document manual template revision updates and downstream counter migration.
+- Add opt-in root pruneBuilds and the portable IntelliJ "ExampleMod - Prune Old Builds" configuration. Retain the newest production JAR independently in each target's build/libs directory using creation time, with a last-modified fallback and deterministic timestamp ties; exclude classifier/unrelated archives and redirected paths, and share the production lock.

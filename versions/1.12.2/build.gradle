@@ -2,7 +2,7 @@ plugins { id 'java'; id 'xyz.wagyourtail.unimined' version '1.4.1' }
 ext.repositoryRoot = file('../..')
 ext.minecraftTarget = '1.12.2'
 ext.loaderTarget = 'forge'
-ext.loaderVersion = '1.12.2-14.23.5.2864'
+ext.loaderVersion = '1.12.2-14.23.5.2859'
 ext.javaTarget = 8
 apply from: '../../build-logic/version.gradle'
 apply from: '../../build-logic/shared.gradle'
@@ -15,7 +15,7 @@ unimined.minecraft {
         config('client') { javaVersion = JavaVersion.VERSION_1_8 }
         config('server') { javaVersion = JavaVersion.VERSION_1_8 }
     }
-    minecraftForge { loader '14.23.5.2864' }
+    minecraftForge { loader '14.23.5.2859' }
     
 }
 jar.finalizedBy 'remapJar'

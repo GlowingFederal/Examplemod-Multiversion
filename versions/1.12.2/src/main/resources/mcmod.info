@@ -7,6 +7,9 @@
     "mcversion": "1.12.2",
     "authorList": [
       "GlowingFederal"
-    ]
+    ],
+    "dependencies": ["forge@[14.23.5.2859,)"],
+    "requiredMods": ["forge@[14.23.5.2859,)"],
+    "useDependencyInformation": true
   }
 ]

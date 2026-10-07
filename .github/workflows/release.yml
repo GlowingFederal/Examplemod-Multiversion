@@ -58,7 +58,7 @@ jobs:
           sys.path.insert(0, 'scripts')
           import build
           _, semantic, number = build.read_version()
-          if semantic != os.environ['MOD_VERSION'] or number + 1 != int(os.environ['BUILD_NUMBER']):
+          if semantic != os.environ['MOD_VERSION'] or number != int(os.environ['BUILD_NUMBER']):
               raise SystemExit('main version.properties changed since release planning; refusing to overwrite it')
           PY
           python3 scripts/build.py persist --number "$BUILD_NUMBER" --artifacts release-jars
@@ -76,5 +76,5 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add version.properties
-          git commit -m "Advance production build number to $BUILD_NUMBER"
+          git commit -m "Advance production counter after build $BUILD_NUMBER"
           git push origin HEAD:main

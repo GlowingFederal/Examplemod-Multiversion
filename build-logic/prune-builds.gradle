@@ -1,0 +1,90 @@
+import java.nio.file.Files
+import java.nio.file.LinkOption
+import java.nio.file.attribute.BasicFileAttributes
+import java.util.regex.Pattern
+
+def repository = rootDir.toPath()
+def targets = project.ext.minecraftTargets
+
+tasks.register('pruneBuilds') {
+    group = 'build'
+    description = 'Removes obsolete production test JARs while preserving the newest artifact for each Minecraft target.'
+    // Deliberately has no dependencies or finalizers: pruning is always opt-in.
+    doLast {
+        def root = repository.toRealPath()
+        def lock = root.resolve('.build-number.lock')
+        try {
+            Files.createDirectory(lock)
+        } catch (java.nio.file.FileAlreadyExistsException e) {
+            throw new GradleException('Another production build or pruneBuilds owns .build-number.lock; retry when it finishes.', e)
+        }
+        try {
+            def verification = new groovy.json.JsonSlurper().parse(root.resolve('verification.json').toFile())
+            targets.each { mc ->
+                def runtime = new groovy.json.JsonSlurper().parse(root.resolve("versions/${mc}/target.json").toFile())
+                def name = verification.archive_pattern.replace('{mod_id}', verification.mod_id)
+                        .replace('{mc}', mc).replace('{loader}', runtime.loader)
+                // Match only the complete production name, never classifier suffixes or other mods.
+                def parts = name.split(Pattern.quote('{full_version}'), -1)
+                if (parts.length != 2 || parts.any { it.contains('{') || it.contains('}') } ||
+                        name.contains('/') || name.contains('\\') || !name.endsWith('.jar')) {
+                    throw new GradleException('pruneBuilds requires a production archive_pattern with exactly one {full_version} and no directories.')
+                }
+                def pattern = Pattern.compile(Pattern.quote(parts[0]) +
+                        '[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?\\.[0-9]+' + Pattern.quote(parts[1]))
+                // Unimined/GTNH/LegacyForge final remap/reobf output, in-place FG output,
+                // and native NeoForge jar output all end here. Never descend into caches.
+                def directory = root.resolve("versions/${mc}/build/libs")
+                if (!Files.exists(directory, LinkOption.NOFOLLOW_LINKS)) {
+                    logger.lifecycle("${mc}: no production JARs; nothing to prune.")
+                    return
+                }
+                if (!Files.isDirectory(directory, LinkOption.NOFOLLOW_LINKS) || directory.toRealPath() != directory) {
+                    throw new GradleException("Refusing to prune a redirected output directory: ${directory}")
+                }
+                def artifacts = []
+                Files.newDirectoryStream(directory).withCloseable { entries ->
+                    entries.each { path ->
+                        if (Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS) && pattern.matcher(path.fileName.toString()).matches()) {
+                            def creation = null
+                            def modified
+                            try {
+                                def attributes = Files.readAttributes(path, BasicFileAttributes, LinkOption.NOFOLLOW_LINKS)
+                                creation = attributes.creationTime()
+                                modified = attributes.lastModifiedTime()
+                            } catch (UnsupportedOperationException | IOException ignored) {
+                                // Some providers cannot expose creation time. Fail safely if mtime is also unreadable.
+                                modified = Files.getLastModifiedTime(path, LinkOption.NOFOLLOW_LINKS)
+                            }
+                            artifacts.add([path: path, creation: creation, modified: modified])
+                        }
+                    }
+                }
+                if (artifacts.empty) {
+                    logger.lifecycle("${mc}: no production JARs; nothing to prune.")
+                    return
+                }
+                // Use one clock for the whole target, avoiding comparisons between different clocks.
+                // Epoch/negative creation times represent unavailable/unusable provider values.
+                def useCreation = artifacts.every { it.creation != null && it.creation.toMillis() > 0 }
+                def clock = useCreation ? 'creationTime' : 'lastModifiedTime (creation time unavailable)'
+                artifacts.sort { a, b ->
+                    def order = (useCreation ? a.creation : a.modified).compareTo(useCreation ? b.creation : b.modified)
+                    order != 0 ? order : a.path.toString().compareTo(b.path.toString())
+                }
+                def retained = artifacts.last().path
+                logger.lifecycle("${mc}: retained ${retained.fileName} using ${clock}.")
+                if (artifacts.size() == 1) {
+                    logger.lifecycle("${mc}: one production JAR; nothing to prune.")
+                } else {
+                    artifacts.take(artifacts.size() - 1).each { artifact ->
+                        Files.delete(artifact.path)
+                        logger.lifecycle("${mc}: deleted ${artifact.path.fileName}.")
+                    }
+                }
+            }
+        } finally {
+            Files.deleteIfExists(lock)
+        }
+    }
+}

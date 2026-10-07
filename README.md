@@ -11,18 +11,20 @@ All eight targets compile, run the five shared JUnit vectors, and produce inspec
 | 1.6.4 | Forge 9.11.1.1345 | Unimined 1.4.1 | 8.13 | 21 | 7 | 7 (51) | 8 |
 | 1.7.10 | Forge 10.13.4.1614 | GTNHGradle 2.0.34, RetroFuturaGradle 2.0.6 | 9.7.1 | 25 | 17 with Jabel | 8 (52) | 8 |
 | 1.8.9 | Forge 11.15.1.2318 | Unimined 1.4.1 | 8.13 | 21 | 8 | 8 (52) | 8 |
-| 1.12.2 | Forge 14.23.5.2864 | Unimined 1.4.1 | 8.13 | 21 | 8 | 8 (52) | 8 |
-| 1.16.5 | Forge 36.2.42 | ForgeGradle 6.0.54 | 8.13 | 21 | 8 | 8 (52) | 8 |
-| 1.18.2 | Forge 40.3.12 | ModDevGradle Legacy Forge 2.0.148 | 8.13 | 21 | 17 | 17 (61) | 17 |
+| 1.12.2 | Forge 14.23.5.2859 | Unimined 1.4.1 | 8.13 | 21 | 8 | 8 (52) | 8 |
+| 1.16.5 | Forge 36.2.34 | ForgeGradle 6.0.54 | 8.13 | 21 | 8 | 8 (52) | 8 |
+| 1.18.2 | Forge 40.3.0 | ModDevGradle Legacy Forge 2.0.148 | 8.13 | 21 | 17 | 17 (61) | 17 |
 | 1.20.1 | Forge 47.4.10 | ModDevGradle Legacy Forge 2.0.148 | 8.13 | 21 | 17 | 17 (61) | 17 |
 | 1.21.11 | NeoForge 21.11.45 | ModDevGradle 2.0.148 | 9.2.1 | 21 | 21 | 21 (65) | 21 |
+
+The listed Forge builds are minimum supported versions, selected from the [official Recommended builds](https://files.minecraftforge.net/net/minecraftforge/forge/promotions_slim.json). Newer Forge builds for the same Minecraft version remain supported. Minecraft 1.21.11 uses the stable NeoForge 21.11.45 baseline; its JAR requires NeoForge.
 
 Tooling was selected per generation, considering current maintained replacements and historical official builds:
 
 - **1.6.4:** [Unimined's upstream Forge example](https://github.com/unimined/Unimined/tree/lts/1.4/testing/1.6.4-Forge) supports the Java 8-compatible Forge 1345 release. Its FG2-compatible transformer uses modern downloads/remapping without requiring an abandoned ForgeGradle 1.0 process or a private patched toolchain. The original FG1 userdev exists for 964, but not 1345. The older Forge version and dead HTTP endpoints make that path a poorer baseline.
 - **1.7.10:** [GTNH ExampleMod](https://github.com/GTNewHorizons/ExampleMod1.7.10) is the reference. GTNHGradle supplies RetroFuturaGradle, maintained repositories, IDE support, generic injection and Jabel. Git-derived versioning, automatic buildscript updates and unused publishing/mixin integrations are disabled so the root version file remains authoritative. The pinned upstream plugin uses JDK 25 to run; **Jabel compiles Java 17 syntax against Java 8 APIs and bytecode**. Native modern bytecode is not enabled. JVM Downgrader is unnecessary for this domain function; reconsider it if an adapter needs newer library APIs, auditing bundled stubs and licensing first. Shared production code stays within Java 7 syntax/API because the other adapters compile it directly.
 - **1.8.9:** Unimined's FG2-compatible transformer supports this exact Forge generation and stable MCP 22 mappings. It replaces FG2.1's obsolete build environment while preserving a normal Forge output. GTNH's 1.7.10-specific conventions are not applied to this target.
-- **1.12.2:** Unimined uses its FG3-compatible transformer for the maintained Forge 2864 release, with the SRG config supplied by Forge userdev and stable MCP 39 names. The anatawa12 FG2.3 fork was evaluated as a historical alternative; Unimined avoids the old Gradle/dependency setup while keeping Java 8 output. [The upstream Forge integration example](https://github.com/unimined/Unimined/tree/lts/1.4/testing/1.12.2-Forge-Fabric-Liteloader) also supports other loaders; this repository enables Forge only.
+- **1.12.2:** Unimined uses its FG3-compatible transformer for the Recommended Forge 2859 release, with the SRG config supplied by Forge userdev and stable MCP 39 names. The anatawa12 FG2.3 fork was evaluated as a historical alternative; Unimined avoids the old Gradle/dependency setup while keeping Java 8 output. [The upstream Forge integration example](https://github.com/unimined/Unimined/tree/lts/1.4/testing/1.12.2-Forge-Fabric-Liteloader) also supports other loaders; this repository enables Forge only.
 - **1.16.5:** Current official ForgeGradle remains appropriate. [ModDevGradle Legacy Forge](https://github.com/neoforged/ModDevGradle/blob/main/LEGACY.md) starts at Minecraft 1.17, so it does not support this target. ForgeGradle's JDK 8 toolchain compiles the adapter; JDK 21 runs Gradle.
 - **1.18.2 and 1.20.1:** ModDevGradle's maintained Legacy Forge plugin supports these Forge targets, official Mojang mappings and production SRG reobfuscation. It shares conventions with the NeoForge target and avoids keeping another ForgeGradle-specific configuration where unnecessary. The runtime loader remains Forge.
 - **1.21.11:** [The current NeoForge MDK](https://github.com/NeoForgeMDKs/MDK-1.21.11-ModDevGradle) provides the selected loader, Java 21, wrapper and ModDevGradle generation. NeoForge needs no mod reobfuscation pass.
@@ -74,7 +76,8 @@ scripts/                JDK selection, wrapper dispatch and aggregate release co
 verification.json       Project identity and per-target production archive expectations
 .github/workflows/      Independent matrix builds and eight-target tag releases
 .run/                   Portable IntelliJ shortcuts for root Gradle launchers
-version.properties      One manually managed semantic version and persistent build counter
+version.properties      Example mod release metadata and next production build number
+template.properties     Internal ExampleMod template revision, independent of mod metadata
 ```
 
 The root configures **only `common`**. Every target has its own settings and wrapper. No old or new loader plugin has to coexist with another target's plugin in a Gradle daemon. Modern adapters share build conventions where their tooling supports them. No permanent version branches or copied domain code are needed.
@@ -221,7 +224,7 @@ To inspect a development launcher's native task graph without starting Minecraft
 
 This forwards `--dry-run` to that target's native `runClient` task. Root `--dry-run` alone only lists the parent launcher and never invokes the child wrapper. Neither inspection consumes a production number.
 
-Portable Gradle run configurations under `.run/` provide **Build All Versions**, **Test All Versions**, and build/client shortcuts for **1.7.10**, **1.20.1** and **1.21.11** in IntelliJ's Run menu after import. They use `$PROJECT_DIR$` and the root task names, with no machine-specific JDK paths. To add another shortcut, create a [Gradle run configuration](https://www.jetbrains.com/help/idea/run-debug-gradle.html), select the root project, enter its launcher task name and select **Store as project file**. Keep shared configurations under `.run/`; `.idea/` remains ignored.
+Portable Gradle run configurations under `.run/` provide **Build All Versions**, **Test All Versions**, **ExampleMod - Prune Old Builds**, and build/client shortcuts for **1.7.10**, **1.20.1** and **1.21.11** in IntelliJ's Run menu after import. They use `$PROJECT_DIR$` and the root task names, with no machine-specific JDK paths. To add another shortcut, create a [Gradle run configuration](https://www.jetbrains.com/help/idea/run-debug-gradle.html), select the root project, enter its launcher task name and select **Store as project file**. Keep shared configurations under `.run/`; `.idea/` remains ignored.
 
 ### Native target development and synchronization
 
@@ -262,7 +265,7 @@ Use the original ExampleMod behavior as a demonstration, then define the real mo
 
 - Set `mod_id`, `base_package` and `display_name` in `verification.json`. These also supply the archive identity, generated version-class package and manifest title to shared packaging. Rename source packages and update entrypoints, annotation constants, target project names/groups and 1.7.10's `modId`/`modName`/`modGroup` properties separately; configuration does not rename demonstration source.
 - Set the semantic version in root `version.properties` and keep its existing transaction rules. Use the generated version constant in entrypoints; do not add a second counter to verification or adapter configuration.
-- Replace demonstration assets and their generation in `build-logic/shared.gradle`, including language keys, model templates and resource namespaces. Update target metadata, mod declarations in each loader's build DSL, entrypoints and optional client requirements against that target's API.
+- Replace demonstration assets and their generation in `build-logic/shared.gradle`, including language keys, model templates and resource namespaces. Preserve target-required `pack.mcmeta` even for utilities with no textures: Minecraft 1.16.5 requires valid metadata at the JAR root with `pack_format: 6`. Update target metadata, mod declarations in each loader's build DSL, entrypoints and optional client requirements against that target's API.
 - Replace archive expectations as described below. Keep required shared classes/assets aligned with the actual implementation; a server-only mod can have an explicitly empty asset list.
 - Update CI upload/download artifact names and archive globs together in `.github/workflows/build-matrix.yml` and `release.yml`, including the release concurrency name, and update portable `.run/` labels if needed. CI calls the same verifier; its artifact labels/globs remain workflow configuration.
 
@@ -294,18 +297,28 @@ The verifier selects the exact production filename and checks required content, 
 
 ```properties
 mod_version=1.0.0
-build_number=0
+build_number=1
 ```
 
-Only humans change `mod_version`. Production packaging uses `build_number + 1`; metadata, generated `BuildVersion`, manifest and filename use `fullVersion = mod_version.build_number`. There are no target-local version files.
+This is deliberately **example mod metadata**, not the template's version. The template example remains `1.0.0`; downstream projects set their own `mod_version`. The stored `build_number` is the **next production number**: a fresh checkout's `buildAll` produces `1.0.0.1` for all eight targets, then saves `build_number=2`. Metadata, generated `BuildVersion`, manifest and filenames use the allocated `fullVersion = mod_version.build_number`. There are no target-local version files.
+
+`template.properties` separately records `templateRevision=1`. Increment this integer once for each completed template update that downstream repositories should distinguish, including build conventions, target support or example fixes. Copy it with the template when migrating a project so repositories can compare their template baseline. It is manually maintained and never used in mod filenames, resources, manifests or generated version classes. Template maintenance does not require bumping `mod_version` or consuming a mod build number; keep the distributed template's example state at `1.0.0` / `1` rather than committing counters consumed only by template validation.
 
 An explicitly requested `build`, `jar`, `assemble`, `reobfJar` or `remapJar` allocates once per invocation, even when tasks depend on each other. `jar` completes the target's remapping too. Compilation, resource processing, tests/checks, runs, IDE import, workspace setup, dependency resolution and clean do not allocate. A failed build preserves the persistent counter. Comments, other keys, formatting and line endings survive a successful update.
 
-Direct builds lock the root counter and commit it after successful packaging. `build-all` holds that same lock, passes one resolved number to all eight wrappers, verifies every artifact, and commits only after every target succeeds. Failure can leave ignored partial JAR outputs; those are not a complete release. Concurrent local production builds fail clearly instead of racing. If a process is forcibly killed, remove the empty `.build-number.lock` directory only after confirming no production build is running. Configuration caching is disabled because version transactions depend on the requested tasks and build outcome.
+Direct builds lock the root counter and advance it after successful packaging. `build-all` holds that same lock, passes the stored next number to all eight wrappers, verifies every artifact, and advances it only after every target succeeds. Failure can leave ignored partial JAR outputs; those are not a complete release. Concurrent local production builds fail clearly instead of racing. If a process is forcibly killed, remove the empty `.build-number.lock` directory only after confirming no production build or pruning task is running. Configuration caching is disabled because version transactions depend on the requested tasks and build outcome.
 
-CI pull-request/main builds use one planned candidate number without changing the repository. Tag releases use `v<next-fullVersion>` (for example, `v1.0.0.1` when the root counter is 0). The release matrix uses that one number on every runner. Only after common tests, all eight builds and archive verification succeed does the release workflow advance `version.properties` on `main` and upload a combined release artifact. Enable Actions write access for that final job; a protected `main` may require an approved bot path. A changed counter or semantic version on `main` makes persistence fail instead of overwriting newer work. The workflow produces artifacts; it does not publish to mod hosting services.
+CI pull-request/main builds use the stored next number without changing the repository. Tag releases use `v<next-fullVersion>` (for example, `v1.0.0.1` when the root counter is 1). The release matrix uses that one number on every runner. Only after common tests, all eight builds and archive verification succeed does the release workflow advance `version.properties` on `main` and upload a combined release artifact. Enable Actions write access for that final job; a protected `main` may require an approved bot path. A changed counter or semantic version on `main` makes persistence fail instead of overwriting newer work. The workflow produces artifacts; it does not publish to mod hosting services.
 
-For a local successful production build, include the updated `version.properties` in the normal human-reviewed source commit. Avoid using an already consumed local production number as the next CI tag.
+For a downstream mod's successful production build, include the updated `version.properties` in the normal human-reviewed source commit. Avoid using an already consumed local production number as the next CI tag. Existing downstream projects adopting this next-number convention should add one to a counter that previously meant the last completed build.
+
+### Removing old development builds
+
+Run `./gradlew buildAll`, then optionally `./gradlew pruneBuilds` (`./gradlew.bat` on Windows). Pruning is manual and is never attached to build, assemble, clean or development tasks. In IntelliJ, refresh the root Gradle project and double-click **Tasks > build > pruneBuilds**, or select **ExampleMod - Prune Old Builds** in the Run menu.
+
+The task scans only the eight `versions/<minecraft>/build/libs/` directories, independently retaining one newest production JAR per target. It matches the complete filename configured by `verification.json` and each target's loader, including a semantic mod version and numeric build number. Sources, javadoc, dev/deobf, API, intermediate classifier JARs, other mods and nested directories are excluded; symbolic links and redirected output directories are not pruned. There is no root distribution copy to clean.
+
+Selection uses JVM `BasicFileAttributes.creationTime()`, **never build-number or version ordering**. If any candidate's creation time is unavailable or non-positive, that target uses `lastModifiedTime()` consistently instead. Equal timestamps use absolute path as a stable tie-breaker. Filesystems that return plausible but inaccurate creation times cannot be detected reliably; copying or overwriting a file may preserve its original creation time. The task prints retained/deleted filenames and empty/single-artifact results, shares the production lock to prevent concurrent builds, and does not change either properties file.
 
 ## Adding a target or feature
 

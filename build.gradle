@@ -2,6 +2,8 @@
 plugins { id 'base' }
 
 def targets = ['1.6.4', '1.7.10', '1.8.9', '1.12.2', '1.16.5', '1.18.2', '1.20.1', '1.21.11']
+ext.minecraftTargets = targets
+apply from: 'build-logic/prune-builds.gradle'
 def windows = System.getProperty('os.name').toLowerCase(Locale.ROOT).contains('windows')
 def python = providers.environmentVariable('PYTHON').orElse(windows ? 'python' : 'python3')
 def coordinator = file('scripts/build.py')

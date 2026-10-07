@@ -14,7 +14,7 @@ def archiveName = { String full ->
 }
 def versionFile = new File(project.ext.repositoryRoot, 'version.properties')
 if (!versionFile.exists()) {
-    versionFile.text = 'mod_version=1.0.0\nbuild_number=0\n'
+    versionFile.text = 'mod_version=1.0.0\nbuild_number=1\n'
 }
 def originalBytes = Files.readAllBytes(versionFile.toPath())
 def versionText = new String(originalBytes, 'UTF-8')
@@ -25,13 +25,14 @@ def numberText = values.getProperty('build_number')?.trim()
 if (semantic == null || !(semantic ==~ /[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?/)) {
     throw new GradleException('version.properties: mod_version must be a semantic version, e.g. 1.0.0')
 }
-if (numberText == null || !(numberText ==~ /[0-9]+/) || numberText.toBigInteger() > Long.MAX_VALUE - 1) {
-    throw new GradleException('version.properties: build_number must be a non-negative integer below Long.MAX_VALUE')
+if (numberText == null || !(numberText ==~ /[0-9]+/) || numberText.toBigInteger() < 1 || numberText.toBigInteger() >= Long.MAX_VALUE) {
+    throw new GradleException('version.properties: build_number must be a positive next-production number below Long.MAX_VALUE')
 }
 if ((versionText =~ /(?m)^\s*build_number\s*[:=]/).count != 1 ||
         (versionText =~ /(?m)^\s*mod_version\s*[:=]/).count != 1) {
     throw new GradleException('version.properties must contain exactly one mod_version and build_number assignment')
 }
+// The stored number is the next production number, not the last completed build.
 def oldNumber = numberText.toLong()
 ext.modVersion = semantic
 ext.buildNumber = oldNumber
@@ -67,13 +68,13 @@ gradle.taskGraph.whenReady { graph ->
         requested.tokenize(':').last() in ['build', 'jar', 'assemble', 'reobf', 'reobfJar', 'remapJar', 'release']
     }
     if (production && oldNumber == Long.MAX_VALUE - 1) {
-        throw new GradleException('Production build_number exhausted its supported integer range')
+        throw new GradleException('Production build_number cannot advance within its supported integer range')
     }
     if (coordinated) {
         def requestedNumber = project.property('releaseBuildNumber').toString()
         if (!(requestedNumber ==~ /[0-9]+/) || requestedNumber.toBigInteger() > Long.MAX_VALUE - 1 ||
-                project.property('releaseModVersion').toString() != semantic || requestedNumber.toLong() != oldNumber + 1) {
-            throw new GradleException('Coordinated release must use root mod_version and build_number + 1')
+                project.property('releaseModVersion').toString() != semantic || requestedNumber.toLong() != oldNumber) {
+            throw new GradleException('Coordinated release must use root mod_version and the next build_number')
         }
         applyNumber(requestedNumber.toLong())
     } else if (production) {
@@ -86,7 +87,7 @@ gradle.taskGraph.whenReady { graph ->
         if (!Arrays.equals(originalBytes, Files.readAllBytes(versionFile.toPath()))) {
             throw new GradleException('version.properties changed during configuration; retry this build')
         }
-        applyNumber(oldNumber + 1)
+        applyNumber(oldNumber)
     }
 }
 gradle.buildFinished { result ->
@@ -110,7 +111,7 @@ gradle.buildFinished { result ->
                 throw new GradleException('version.properties changed while packaging; refusing to overwrite it')
             }
             // Preserve comments, other keys, separators, and line endings.
-            def updated = versionText.replaceFirst(/(?m)^(\s*build_number\s*[:=]\s*)[0-9]+/, '$1' + project.buildNumber)
+            def updated = versionText.replaceFirst(/(?m)^(\s*build_number\s*[:=]\s*)[0-9]+/, '$1' + (project.buildNumber + 1))
             def temporary = Files.createTempFile(versionFile.parentFile.toPath(), '.version-', '.tmp')
             try {
                 Files.write(temporary, updated.getBytes('UTF-8'))
